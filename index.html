@@ -734,7 +734,7 @@
     </style>
     <style>
       /* ===== Desktop layout (≥900px). Nothing here applies on iPhone. ===== */
-      .x-side__brand, .x-side__add, .x-side__acct, .x-dbar, .x-thead { display: none; }
+      .x-side__brand, .x-side__add, .x-side__acct, .x-dbar, .x-thead, .x-dtop { display: none; }
 
       @media (min-width: 900px) {
         .x-app {
@@ -841,7 +841,45 @@
         #total { grid-column: 3; grid-row: 1; }
         .x-dbar .x-gear.x-gear--pill { margin: 0; min-height: 40px; }
         .x-dbar .x-gear.x-gear--pill:hover { border-color: rgba(232, 196, 168, 0.75); }
-        .x-dbar .x-volume { flex: 0 1 160px; min-width: 110px; gap: 8px; }
+        .x-dbar .x-volume { flex: 0 1 200px; min-width: 140px; gap: 10px; padding-right: 4px; }
+        .x-dbar .x-volume .x-range { flex: 1 1 auto; min-width: 0; }
+
+        /* Playback button lives at the top as Settings on desktop */
+        .x-app .x-view--now #setBtn { display: none; }
+        .x-app { grid-template-rows: 60px minmax(0, 1fr) 88px; }
+        .x-bar { grid-row: 1 / 3; }
+        .x-views { grid-row: 2; }
+        .x-dbar { grid-row: 3; }
+        .x-dtop {
+          grid-column: 2; grid-row: 1; position: relative; z-index: 3; display: flex; align-items: center; justify-content: flex-end;
+          padding: 0 20px; background: rgba(42, 11, 34, 0.55); -webkit-backdrop-filter: var(--n-blur); backdrop-filter: var(--n-blur);
+          border-bottom: 1px solid var(--n-line);
+        }
+        .x-dtop__btn {
+          display: inline-flex; align-items: center; gap: 8px; min-height: var(--tap); padding: 0 16px 0 12px; box-sizing: border-box;
+          border-radius: var(--r-pill) !important; border: 1px solid var(--n-line-strong) !important; background: rgba(42, 11, 34, 0.92) !important;
+          color: #f7e1cf !important; font: var(--type-label) !important;
+          transition: background var(--dur-quick) ease, border-color var(--dur-quick) ease, transform var(--dur-quick) ease;
+        }
+        .x-dtop__btn svg { width: 18px; height: 18px; flex: none; }
+        .x-dtop__btn:hover { background: linear-gradient(rgba(201, 138, 155, 0.26), rgba(201, 138, 155, 0.26)), rgb(42, 11, 34) !important; border-color: rgba(232, 196, 168, 0.75) !important; }
+        .x-dtop__btn:active, .x-dtop__btn[aria-expanded="true"] { background: linear-gradient(rgba(201, 138, 155, 0.36), rgba(201, 138, 155, 0.36)), rgb(42, 11, 34) !important; border-color: #e8c4a8 !important; }
+        .x-dtop__btn:active { transform: scale(0.97); }
+        .x-dtop__btn:focus-visible { outline: 2px solid #e8c4a8; outline-offset: 3px; }
+        .x-app .x-lib-head { padding-top: 16px; }
+
+        /* Clear hover and active highlights */
+        .x-app .x-tab:hover { background: rgba(201, 138, 155, 0.2) !important; color: #f7e1cf !important; }
+        .x-app .x-tab:active { background: rgba(201, 138, 155, 0.32) !important; }
+        .x-app .x-tab[aria-selected="true"]:hover { background: linear-gradient(90deg, rgba(201, 138, 155, 0.38), rgba(201, 138, 155, 0.14)) !important; }
+        .x-side__add:hover, .x-add:hover { background: rgba(201, 138, 155, 0.26) !important; }
+        .x-side__add:active, .x-add:active { background: rgba(201, 138, 155, 0.36) !important; }
+        .x-dbar .x-ctl:not(.x-play):not(:disabled) { border-radius: 50%; transition: background var(--dur-quick) ease, color var(--dur-quick) ease; }
+        .x-dbar .x-ctl:not(.x-play):not(:disabled):hover { background: rgba(201, 138, 155, 0.2); }
+        .x-dbar .x-ctl:not(.x-play):not(:disabled):active { background: rgba(201, 138, 155, 0.32); }
+        .x-dbar .x-play:hover { filter: brightness(1.1); }
+        .x-dbar .x-mini__open:active, .x-list li:active { background: rgba(201, 138, 155, 0.26); }
+        .x-app .x-more:hover, .x-app .x-lyr-btn:hover, .x-app .x-next:hover { background-color: rgba(201, 138, 155, 0.2); }
         .x-dbar .x-volnote { flex: 0 1 auto; white-space: nowrap; overflow: hidden; }
 
         /* Library as a table */
@@ -1113,6 +1151,13 @@
             </div>
           </section>
         </main>
+
+        <div class="x-dtop" id="dtop">
+          <button class="x-dtop__btn" id="deskSetBtn" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="setSheet">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <span>Settings</span>
+          </button>
+        </div>
 
         <div class="x-bar">
           <p class="x-brand x-side__brand"><img class="x-brand__badge" src="neska-emblem.png" alt="" width="48" height="48" /><span class="x-brand__txt"><span class="x-brand__name">Neska<span class="x-tm">™</span> Music</span><span class="x-brand__tag">Global Sound</span></span></p>
@@ -4559,7 +4604,6 @@
     [$("miniOpen"), "dbarL"],
     [panel.querySelector(".x-controls"), "dbarC"],
     [$("seek").parentNode, "dbarC"],
-    [$("setBtn"), "dbarR"],
     [$("volumeRow"), "dbarR"],
     [$("volNote"), "dbarR"]
   ].filter(function (m) { return m[0]; });
@@ -4611,6 +4655,26 @@
     if (panel.contains(e.target) || e.target.closest("#tab-now, #miniOpen, .x-confirm, .x-menu")) return;
     app.classList.remove("x-panel-open"); $("tab-now").setAttribute("aria-expanded", "false");
   });
+  // Settings button at the top: opens the same Playback sheet, titled Settings
+  var deskSet = $("deskSetBtn"), setSheetEl = $("setSheet"), setTitleEl = $("setTitle"), fromDesk = false;
+  if (deskSet && setSheetEl && $("setBtn")) {
+    deskSet.addEventListener("click", function () {
+      fromDesk = true;
+      if (setTitleEl) setTitleEl.textContent = "Settings";
+      deskSet.setAttribute("aria-expanded", "true");
+      $("setBtn").click();
+    });
+    if (window.MutationObserver) {
+      new MutationObserver(function () {
+        if (!setSheetEl.hidden || !fromDesk) return;
+        fromDesk = false;
+        deskSet.setAttribute("aria-expanded", "false");
+        if (setTitleEl) setTitleEl.textContent = "Playback";
+        if (mq.matches) { try { deskSet.focus({ preventScroll: true }); } catch (e) {} }
+      }).observe(setSheetEl, { attributes: true, attributeFilter: ["hidden"] });
+    }
+  }
+
   function onWide() { if (wide.matches) { app.classList.remove("x-panel-open"); $("tab-now").removeAttribute("aria-expanded"); } }
 
   function listen(q, fn) { if (q.addEventListener) q.addEventListener("change", fn); else if (q.addListener) q.addListener(fn); }

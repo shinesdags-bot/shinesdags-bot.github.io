@@ -1,6 +1,6 @@
 // Neska Music: minimal service worker so browsers can install the app.
 // Network-first for the app shell; never caches songs or Supabase calls.
-const CACHE = "neska-shell-v1";
+const CACHE = "neska-shell-v2";
 const SHELL = ["./", "index.html", "hark.css", "hark-hero.css", "hark.js", "manifest.webmanifest", "icon-192.png", "icon-512.png", "neska-emblem.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).catch(() => {})); self.skipWaiting(); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k))))); self.clients.claim(); });
