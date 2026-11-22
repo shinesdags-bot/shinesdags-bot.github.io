@@ -9,8 +9,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="icon" type="image/png" href="neska-emblem.png" />
-    <link rel="apple-touch-icon" href="icon-180.png" />
-    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="neska-emblem.png" />
     <title>Neska™ Music</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -679,8 +678,63 @@
       .x-lyr-dlg textarea:focus { outline: 2px solid #e8c4a8; outline-offset: 1px; }
       .x-lyr-dlg .x-confirm__btns { grid-template-columns: 1fr 1fr 1fr; }
       @media (prefers-reduced-motion: reduce) { .x-lyr { animation: none; } .x-lyr__scroll { scroll-behavior: auto; } }
+
+      /* ===== Side padding: at least 16px plus the safe area on every tab ===== */
+      .x-app {
+        --x-padL: calc(max(16px, var(--gutter)) + env(safe-area-inset-left));
+        --x-padR: calc(max(16px, var(--gutter)) + env(safe-area-inset-right));
+      }
+      .x-app .x-view { box-sizing: border-box; padding-left: var(--x-padL); padding-right: var(--x-padR); }
+      .x-app .x-col { box-sizing: border-box; max-width: min(460px, 100%); }
+      .x-app .x-lib-head { margin-left: calc(-1 * var(--x-padL)); margin-right: calc(-1 * var(--x-padR)); padding-left: var(--x-padL); padding-right: var(--x-padR); }
+      .x-app .x-shelf__row { margin-left: calc(-1 * var(--x-padL)); margin-right: calc(-1 * var(--x-padR)); padding-left: var(--x-padL); padding-right: var(--x-padR); scroll-padding: 0 var(--x-padR) 0 var(--x-padL); }
+
+      /* ===== Brand only on Home; elsewhere the row is a small top bar holding the avatar ===== */
+      .x-view:not(#view-home) .x-brand > .x-brand__badge,
+      .x-view:not(#view-home) .x-brand > .x-brand__txt { display: none; }
+      .x-view:not(#view-home) .x-brand { justify-content: flex-end; min-height: 46px; }
+      #plDetail .x-lib-head { position: sticky; }
+      #plDetail .x-brand { position: absolute; top: calc(env(safe-area-inset-top) + 8px); right: var(--x-padR); min-height: 46px; }
+      #plDetail .x-pl-back { margin-right: 60px; }
+
+      #view-home .x-brand { gap: 14px; padding: 6px 0 4px; }
+      #view-home .x-brand__badge {
+        width: 72px; height: 72px; filter: brightness(1.15) saturate(1.15);
+        box-shadow: 0 0 0 1.5px #f3dcc0, 0 0 0 4px rgba(243, 220, 192, 0.18), 0 0 24px rgba(255, 190, 200, 0.55), 0 6px 16px rgba(20, 2, 16, 0.5);
+        animation: x-halo 4.5s ease-in-out infinite alternate;
+      }
+      #view-home .x-brand__txt { filter: drop-shadow(0 0 10px rgba(255, 190, 200, 0.5)) drop-shadow(0 0 2px rgba(247, 225, 207, 0.45)); }
+      #view-home .x-brand__name {
+        font-size: clamp(28px, 8.6vw, 37px); line-height: 1.08; padding-bottom: 2px;
+        background: linear-gradient(100deg, #e3a6ab 0%, #f7e1cf 22%, #fffaf3 32%, #f9e4cf 40%, #e8c4a8 58%, #f6d2c8 72%, #fff6ec 80%, #d99aa6 100%);
+        background-size: 250% 100%; background-position: 0% 50%;
+        -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+        animation: x-shimmer 7s ease-in-out infinite alternate;
+      }
+      #view-home .x-brand__tag { margin-top: 6px; font-size: 13.5px; color: #f7e1cf; opacity: 0.92; text-shadow: 0 0 10px rgba(255, 190, 200, 0.45); }
+      @keyframes x-shimmer { from { background-position: 0% 50%; } to { background-position: 100% 50%; } }
+      @keyframes x-halo {
+        from { box-shadow: 0 0 0 1.5px #f3dcc0, 0 0 0 4px rgba(243, 220, 192, 0.18), 0 0 24px rgba(255, 190, 200, 0.55), 0 6px 16px rgba(20, 2, 16, 0.5); }
+        to { box-shadow: 0 0 0 1.5px #f8e6cf, 0 0 0 4px rgba(243, 220, 192, 0.28), 0 0 32px rgba(255, 190, 200, 0.72), 0 6px 16px rgba(20, 2, 16, 0.5); }
+      }
+
+      /* ===== Account avatar: 46px, rose-gold ring and glow, always inside the screen ===== */
+      .x-acct { margin-right: 0; max-width: 100%; }
+      .x-app .x-acct__avatar {
+        width: 46px; height: 46px; min-width: 46px; box-sizing: border-box; border-width: 2px;
+        font: 600 20px/1 var(--sans); letter-spacing: 0; color: #fff3ea;
+        box-shadow: 0 0 0 1px rgba(247, 225, 207, 0.35), 0 0 14px rgba(255, 190, 200, 0.45);
+      }
+      .x-app .x-acct__avatar[aria-expanded="true"] { box-shadow: 0 0 0 1px rgba(247, 225, 207, 0.5), 0 0 20px rgba(255, 190, 200, 0.65); }
+      .x-app .x-acct__avatar svg { width: 22px; height: 22px; }
+
+      @media (prefers-reduced-motion: reduce) {
+        #view-home .x-brand__name, #view-home .x-brand__badge { animation: none; }
+      }
     </style>
-  </head>
+    <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png" />
+</head>
   <body>
     <div class="page" id="top">
       <div class="x-app" id="app">
@@ -874,6 +928,7 @@
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>
                     Playlists
                   </button>
+                  <p class="x-brand"></p>
                   <div class="x-lib-title"><h1 id="plName"></h1><button class="x-more" type="button" id="plMore" aria-haspopup="menu" aria-expanded="false" aria-label="Playlist options">⋯</button></div>
                   <p class="x-pl-sub" id="plCount"></p>
                   <div class="x-pl-actions">
@@ -2069,51 +2124,76 @@
       if (r && r.then) r.then(y, n);
     });
   }
-  function brLoad(p, t, src) { // fetch and decode one song; rejects when too big, too short or stale
-    if (t.blob && t.blob.size > XF_MAX) return Promise.reject(0);
+  function brLoad(p, t, src, isNext) { // fetch and decode one song; rejects with a reason when too big, too short or failed (0 when stale)
+    var dl = isNext ? "couldn't download next song" : "couldn't download this song";
+    if (t.blob && t.blob.size > XF_MAX) return Promise.reject("song too large");
     var opt = p.ac ? { signal: p.ac.signal } : {};
     return fetch(src, opt).then(function (r) {
-      if (p.dead || (!r.ok && r.status !== 0)) throw 0;
+      if (p.dead) throw 0;
+      if (!r.ok && r.status !== 0) throw dl;
       var len = +(r.headers.get("content-length") || 0);
-      if (len > XF_MAX) throw 0;
-      return r.arrayBuffer();
-    }).then(function (ab) {
-      if (p.dead || ab.byteLength > XF_MAX) throw 0;
-      return brDecode(ab);
+      if (len > XF_MAX) throw "song too large";
+      return r.arrayBuffer().then(null, function () { throw p.dead ? 0 : dl; });
+    }, function () { throw p.dead ? 0 : dl; }).then(function (ab) {
+      if (p.dead) throw 0;
+      if (ab.byteLength > XF_MAX) throw "song too large";
+      return brDecode(ab).then(null, function () { throw p.dead ? 0 : "decode failed"; });
     }).then(function (b) {
-      if (p.dead || !b || b.duration < 2 * xfSec) throw 0;
+      if (p.dead) throw 0;
+      if (!b || b.duration < 2 * xfSec) throw "song too short for this fade";
       return b;
     });
   }
   function brPrefetch(p) {
     var cloud = window.NeskaCloud, nt = p.nx.t;
-    brLoad(p, p.from, p.src).then(function (b) {
+    brLoad(p, p.from, p.src, false).then(function (b) {
       p.out = b;
-      if (cloud && cloud.needsSrc(nt)) return cloud.resolve(nt); // the signed URL the element will use
+      if (cloud && cloud.needsSrc(nt)) return Promise.resolve(cloud.resolve(nt)).then(null, function () { throw p.dead ? 0 : "couldn't download next song"; }); // the signed URL the element will use
     }).then(function () {
-      if (p.dead || !nt.src) throw 0;
+      if (p.dead) throw 0;
+      if (!nt.src) throw "couldn't download next song";
       p.nxSrc = nt.src;
-      return brLoad(p, nt, nt.src);
-    }).then(function (b) { p.inn = b; }, function () {
+      return brLoad(p, nt, nt.src, true);
+    }).then(function (b) { p.inn = b; }, function (e) {
       p.failed = true; p.out = p.inn = null;
+      p.why = typeof e === "string" ? e : (p.dead ? null : "couldn't download next song");
     });
+  }
+  /* diagnostics: a fade that should happen but can't says why, once per song */
+  var brToldFor;
+  function brSkip(why) {
+    var t = tracks[cur], k = t ? t.id : null;
+    if (!why || brToldFor === k) return;
+    brToldFor = k; toast("Fade skipped: " + why);
+  }
+  function brWake() { // a fade is due but the context is off: try to start it the way a tap would
+    if (!bridgeCtx) { brUnlock(); return; }
+    try { var p = bridgeCtx.resume(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
   }
   function brCheck() {
     if (pmActive() || PM.busy && pmOn) return; // the pre-mix owns this change
-    if (br || !xfSec || seeking || audio.paused || !wantsPlay || (document.hidden && !liveActive()) || rate !== 1) return;
+    if (br || !xfSec || seeking || audio.paused || !wantsPlay || (document.hidden && !liveActive())) return;
     var t = tracks[cur], d = audio.duration, rem = d - (audio.currentTime || 0), src = audio.getAttribute("src");
+    if (rate !== 1) { if (t && isFinite(d) && d >= 2 * xfSec && rem <= xfSec && rem >= 1 && brPick()) brSkip("speed not 1×"); return; }
     if (!t || !src || !isFinite(d) || d < 2 * xfSec || rem > xfSec + 25) return;
     var nx = brPick(); if (!nx) return;
+    var due = rem <= xfSec && rem >= 1;
     var key = t.id + ">" + nx.t.id + ">" + xfSec;
     if (!prep || prep.key !== key || prep.src !== src) {
       brRelease();
-      if (!bridgeCtx || !window.fetch || !window.Promise) return;
-      prep = { key: key, src: src, from: t, nx: nx, out: null, inn: null, nxSrc: null, dead: false, failed: false, ac: window.AbortController ? new AbortController() : null };
+      if (!window.fetch || !window.Promise) { if (due) brSkip("not supported in this browser"); return; }
+      if (!bridgeCtx) {
+        if (due) { brWake(); brSkip(bridgeCtx ? "tap play once to enable fades" : "audio engine not started"); }
+        return;
+      }
+      prep = { key: key, src: src, from: t, nx: nx, out: null, inn: null, nxSrc: null, dead: false, failed: false, why: null, ac: window.AbortController ? new AbortController() : null };
       brPrefetch(prep);
       return;
     }
-    if (prep.failed || !prep.out || !prep.inn || rem > xfSec || rem < 1) return;
-    if (bridgeCtx.state !== "running") return;
+    if (!due) return;
+    if (prep.failed) { brSkip(prep.why); return; }
+    if (!prep.out || !prep.inn) { if (rem < 1.5) brSkip("next song still loading"); return; }
+    if (bridgeCtx.state !== "running") { brWake(); brSkip("tap play once to enable fades"); return; }
     brStart(prep, rem);
   }
 
@@ -2122,7 +2202,7 @@
     prep = null; // the buffers now belong to this fade
     var ctx = bridgeCtx, off = (audio.currentTime || 0) + 0.05;
     var T = Math.min(xfSec, rem, p.out.duration - off);
-    if (!(T >= 1)) return;
+    if (!(T >= 1)) { brSkip("not enough time left in the song"); return; }
     var b = { nx: p.nx, nxSrc: p.nxSrc, outBuf: p.out, inBuf: p.inn, srcs: [], nodes: [], timers: [], mid: false, back: false, live: true, at: null };
     try {
       var t0 = ctx.currentTime, tF = t0 + 0.02, N = 64, cosC = new Float32Array(N), sinC = new Float32Array(N);
@@ -2140,7 +2220,7 @@
       iF.gain.setValueAtTime(0, t0); iF.gain.setValueCurveAtTime(sinC, tF, T);
       b.t0 = t0; b.tF = tF; b.T = T; b.off = off;
       oS.start(t0, off); iS.start(tF, 0);
-    } catch (e) { brKill(b); return; } // not possible: the song ends and changes as usual
+    } catch (e) { brKill(b); brSkip("audio engine error"); return; } // not possible: the song ends and changes as usual
     br = b;
     audio.pause(); // the buffer carries the song from here
     b.timers.push(setTimeout(brMid, (0.02 + T / 2) * 1000), setTimeout(brEnd, (0.02 + T) * 1000), setInterval(brTick, 250));
@@ -3219,7 +3299,11 @@
     if (refocus) $("acctAvatar").focus();
   }
   function placeAcct() {
-    var chip = $("acct"), v = document.querySelector(".x-view.is-active"), b = v && v.querySelector(".x-brand");
+    var chip = $("acct"), v = document.querySelector(".x-view.is-active"), b = null;
+    if (v) { // the first header row not inside a hidden part (an open playlist has its own)
+      var rows = v.querySelectorAll(".x-brand");
+      for (var i = 0; i < rows.length && !b; i++) if (!rows[i].closest("[hidden]")) b = rows[i];
+    }
     if (b && chip.parentNode !== b) { closeAcctPop(false); b.appendChild(chip); }
   }
   $("acctAvatar").addEventListener("click", function () {
@@ -3231,6 +3315,7 @@
   if (window.MutationObserver) {
     var acctObs = new MutationObserver(placeAcct);
     document.querySelectorAll(".x-view").forEach(function (v) { acctObs.observe(v, { attributes: true, attributeFilter: ["class"] }); });
+    ["plIndex", "plDetail"].forEach(function (id) { if ($(id)) acctObs.observe($(id), { attributes: true, attributeFilter: ["hidden"] }); });
   }
   placeAcct();
   var creditDefault = null;
