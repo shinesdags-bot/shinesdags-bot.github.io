@@ -732,6 +732,170 @@
         #view-home .x-brand__name, #view-home .x-brand__badge { animation: none; }
       }
     </style>
+    <style>
+      /* ===== Desktop layout (≥900px). Nothing here applies on iPhone. ===== */
+      .x-side__brand, .x-side__add, .x-side__acct, .x-dbar, .x-thead { display: none; }
+
+      @media (min-width: 900px) {
+        .x-app {
+          --x-padL: 32px; --x-padR: 32px; --x-side: 240px; --x-panel: 340px;
+          grid-template-columns: var(--x-side) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) 88px;
+          user-select: auto; -webkit-user-select: auto;
+        }
+
+        /* Sidebar: the old tab bar, standing up */
+        .x-bar {
+          grid-column: 1; grid-row: 1; display: flex; flex-direction: column; gap: 6px; min-height: 0; overflow-y: auto;
+          padding: 24px 16px 16px; background: rgba(42, 11, 34, 0.62); -webkit-backdrop-filter: var(--n-blur); backdrop-filter: var(--n-blur);
+          border-right: 1px solid var(--n-line);
+        }
+        .x-app .x-mini { display: none !important; }
+        .x-side__brand { display: flex; gap: 12px; padding: 0 6px 18px; }
+        .x-side__brand .x-brand__badge {
+          width: 48px; height: 48px; filter: brightness(1.15) saturate(1.15);
+          box-shadow: 0 0 0 1.5px #f3dcc0, 0 0 0 4px rgba(243, 220, 192, 0.18), 0 0 24px rgba(255, 190, 200, 0.55), 0 6px 16px rgba(20, 2, 16, 0.5);
+          animation: x-halo 4.5s ease-in-out infinite alternate;
+        }
+        .x-side__brand .x-brand__txt { filter: drop-shadow(0 0 10px rgba(255, 190, 200, 0.45)); }
+        .x-side__brand .x-brand__name {
+          font-size: 26px; padding-bottom: 2px;
+          background: linear-gradient(100deg, #e3a6ab 0%, #f7e1cf 22%, #fffaf3 32%, #f9e4cf 40%, #e8c4a8 58%, #f6d2c8 72%, #fff6ec 80%, #d99aa6 100%);
+          background-size: 250% 100%; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+          animation: x-shimmer 7s ease-in-out infinite alternate;
+        }
+        .x-side__brand .x-brand__tag { font-size: 12px; letter-spacing: 0.28em; color: #f7e1cf; }
+
+        .x-app .x-tabs {
+          display: flex; flex-direction: column; gap: 2px; padding: 0; background: none; border: 0;
+          -webkit-backdrop-filter: none; backdrop-filter: none;
+        }
+        .x-app .x-tab {
+          flex-direction: row; justify-content: flex-start; gap: 14px; min-height: var(--tap); padding: 0 14px;
+          border-radius: var(--r-s); font: var(--type-label) !important; letter-spacing: 0; transition: background var(--dur-quick) ease, color var(--dur-quick) ease;
+        }
+        .x-app .x-tab svg { width: 22px; height: 22px; flex: none; }
+        .x-app .x-tab:hover { background: var(--hover-wash); color: #f7e1cf !important; }
+        .x-app .x-tab:active { transform: scale(0.98); }
+        .x-app .x-tab[aria-selected="true"] { background: linear-gradient(90deg, rgba(201, 138, 155, 0.28), rgba(201, 138, 155, 0.08)); }
+        .x-app .x-tab[aria-selected="true"]::before { top: 10px; bottom: 10px; left: 0; width: 3px; height: auto; margin-left: 0; }
+        .x-side__add { display: inline-flex; justify-content: center; margin-top: 14px; }
+        .x-side__add:hover { background: rgba(74, 24, 56, 0.85); }
+        .x-side__acct { display: flex; margin-top: auto; padding: 16px 6px 0; }
+        .x-side__acct .x-acct { margin-left: 0; }
+        .x-side__acct .x-acct__pop { top: auto; bottom: calc(100% + 8px); left: 0; right: auto; }
+
+        /* Main area and Now playing panel */
+        .x-views { grid-column: 2; grid-row: 1; }
+        .x-app .x-view { padding-top: 0; padding-bottom: 32px; }
+        .x-app .x-view--lib { right: var(--x-panel); }
+        .x-app .x-view--lib .x-col { max-width: min(1100px, 100%); }
+        .x-views .x-brand { display: none !important; }
+        .x-app .x-lib-head { padding-top: 28px; padding-bottom: 16px; }
+        .x-lib-title h1 { font-size: 40px; }
+        #homeHello { font-size: 36px; }
+        #plDetail .x-pl-back { margin-right: 0; }
+        .x-pl-actions { display: flex; }
+        .x-search { max-width: 420px; }
+        .x-add:hover { background: rgba(74, 24, 56, 0.85); }
+
+        .x-app .x-view.x-view--now {
+          left: auto; width: var(--x-panel); opacity: 1; visibility: visible; transform: none; transition: box-shadow 400ms var(--ease-out);
+          padding: 24px 20px; background: rgba(42, 11, 34, 0.5); -webkit-backdrop-filter: var(--n-blur); backdrop-filter: var(--n-blur);
+          border-left: 1px solid var(--n-line); outline: none;
+        }
+        .x-view--now.is-flash { box-shadow: inset 0 0 0 1px var(--n-line-strong), inset 0 0 40px rgba(232, 196, 168, 0.18); }
+        .x-app .x-now { justify-content: flex-start; min-height: 0; gap: 16px; }
+        .x-app .x-stage { width: 100%; }
+        .x-title { font-size: 26px; }
+        .x-app:not(.is-empty) .x-next { display: flex; }
+        .x-next:hover { border-color: var(--n-line-strong) !important; }
+        .x-blank__logo { width: 100%; }
+
+        /* Bottom player bar */
+        .x-dbar {
+          grid-column: 1 / -1; grid-row: 2; position: relative; z-index: 4;
+          display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) minmax(0, 1fr); align-items: center; gap: 24px;
+          padding: 0 20px; background: rgba(42, 11, 34, 0.82); -webkit-backdrop-filter: var(--n-blur); backdrop-filter: var(--n-blur);
+          border-top: 1px solid var(--n-line); box-shadow: 0 -10px 30px rgba(20, 2, 16, 0.35);
+        }
+        .x-dbar__l, .x-dbar__r { display: flex; align-items: center; min-width: 0; }
+        .x-dbar__r { justify-content: flex-end; gap: 12px; }
+        .x-dbar__c { display: flex; flex-direction: column; align-items: stretch; min-width: 0; max-width: 640px; width: 100%; justify-self: center; }
+        .x-dbar .x-mini__open { gap: 12px; border-radius: var(--r-s); padding: 4px 8px 4px 4px; margin-left: -4px; }
+        .x-dbar .x-mini__open:hover { background: var(--hover-wash); }
+        .x-dbar .x-mini__open canvas { width: 56px; height: 56px; border-radius: 10px; flex: none; box-shadow: 0 0 0 1px rgba(232, 196, 168, 0.3); }
+        .x-app.is-empty .x-dbar .x-mini__open canvas { visibility: hidden; }
+        .x-dbar .x-controls { justify-content: center; gap: 10px; height: 46px; }
+        .x-dbar .x-ctl { width: 40px; height: 40px; }
+        .x-dbar .x-ctl--mode { width: 36px; height: 36px; }
+        .x-dbar .x-ctl svg { width: 20px; height: 20px; }
+        .x-dbar .x-ctl--mode svg { width: 18px; height: 18px; }
+        .x-dbar .x-ctl:not(:disabled):hover { color: #fff3f6; }
+        .x-dbar .x-play { width: 42px; height: 42px; margin: 0 6px; box-shadow: 0 4px 14px rgba(183, 110, 121, 0.5), inset 0 0 0 1px rgba(247, 225, 207, 0.35); }
+        .x-dbar .x-play svg { width: 20px; height: 20px; }
+        .x-dbar .x-one { top: 1px; right: -2px; }
+        .x-seekrow { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; gap: 10px; }
+        .x-dbar .x-seek { height: 24px; grid-column: 2; grid-row: 1; }
+        .x-dbar .x-times { display: contents; }
+        #elapsed { grid-column: 1; grid-row: 1; text-align: right; }
+        #total { grid-column: 3; grid-row: 1; }
+        .x-dbar .x-gear.x-gear--pill { margin: 0; min-height: 40px; }
+        .x-dbar .x-gear.x-gear--pill:hover { border-color: rgba(232, 196, 168, 0.75); }
+        .x-dbar .x-volume { flex: 0 1 160px; min-width: 110px; gap: 8px; }
+        .x-dbar .x-volnote { flex: 0 1 auto; white-space: nowrap; overflow: hidden; }
+
+        /* Library as a table */
+        .x-thead {
+          display: grid; grid-template-columns: 36px 64px minmax(0, 1.3fr) 16px minmax(0, 1fr) 40px 56px 54px;
+          margin-top: 16px; padding: 0 0 8px; border-bottom: 1px solid var(--n-line);
+          font: var(--type-tag); letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-secondary);
+        }
+        .x-app.is-empty .x-thead { display: none; }
+        .x-thead__n { grid-column: 1; text-align: right; }
+        .x-thead__t { grid-column: 3; }
+        .x-thead__a { grid-column: 5; }
+        .x-thead__d { grid-column: 7; text-align: right; }
+        #list { counter-reset: x-n; }
+        #list li { counter-increment: x-n; }
+        #list li::before { content: counter(x-n); flex: none; width: 36px; text-align: right; font: var(--type-small); font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+        #list .x-row { min-height: 56px; padding-top: 6px; padding-bottom: 6px; }
+        #list .x-row canvas { width: 40px; height: 40px; }
+        #list .x-row__txt { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 16px; align-items: center; }
+        #list .x-row__artist { font: var(--type-body); }
+        #list .x-eq { display: flex; visibility: hidden; }
+        #list .x-row.is-current .x-eq { visibility: visible; }
+        #list .x-row__dur { width: 56px; text-align: right; font: var(--type-small); font-variant-numeric: tabular-nums; }
+        #list .x-more { width: 36px; height: 36px; font-size: 17px; opacity: 0.55; transition: opacity var(--dur-quick) ease, border-color var(--dur-quick) ease; }
+        #list li:hover .x-more, #list .x-more:focus-visible, #list .x-more[aria-expanded="true"] { opacity: 1; }
+        .x-list li { transition: background var(--dur-quick) ease; }
+        .x-list li:hover { background: var(--hover-wash); }
+        .x-row:active { transform: none; }
+        .x-more:hover { border-color: var(--n-line-strong); }
+
+        /* Home: wrapping grids instead of swipe rows */
+        #homeRows .x-shelf__row {
+          display: grid; grid-template-columns: repeat(auto-fill, minmax(156px, 1fr)); gap: 22px 18px;
+          margin: 0; padding: 2px 0 6px; overflow: visible; scroll-snap-type: none;
+        }
+        #homeRows .x-tile { width: 100%; }
+        #homeRows .x-tile canvas { width: 100%; height: auto; aspect-ratio: 1; transition: transform var(--dur-quick) ease, box-shadow var(--dur-quick) ease; }
+        #homeRows .x-tile:hover canvas { transform: translateY(-3px); box-shadow: 0 0 0 1px rgba(232, 196, 168, 0.45), 0 16px 30px rgba(20, 2, 16, 0.45), 0 0 22px rgba(201, 138, 155, 0.25); }
+        .x-shelf { margin-top: 30px; }
+      }
+
+      /* 900 to 1199px: the panel tucks away and slides in from the Playing tab */
+      @media (min-width: 900px) and (max-width: 1199px) {
+        .x-app .x-view--lib { right: 0; }
+        .x-app .x-view.x-view--now {
+          z-index: 5; visibility: hidden; transform: translateX(100%); background: rgba(48, 13, 39, 0.94);
+          transition: transform 320ms var(--ease-out), visibility 0s linear 320ms;
+        }
+        .x-app.x-panel-open .x-view.x-view--now { visibility: visible; transform: none; transition-delay: 0s; box-shadow: -20px 0 50px rgba(20, 2, 16, 0.55); }
+      }
+      @media (min-width: 900px) and (prefers-reduced-motion: reduce) {
+        .x-side__brand .x-brand__name, .x-side__brand .x-brand__badge { animation: none; }
+      }
+    </style>
     <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png" />
 </head>
@@ -785,7 +949,7 @@
                 </button>
               </div>
 
-              <div>
+              <div class="x-seekrow">
                 <div class="x-seek" id="seek" role="slider" tabindex="0" aria-label="Seek" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0" aria-valuetext="0:00">
                   <div class="x-seek__track">
                     <div class="x-seek__buf" id="seekBuf"></div>
@@ -889,6 +1053,7 @@
                   <input type="search" id="search" placeholder="Search tracks or artists" aria-label="Search tracks or artists" autocomplete="off" />
                 </div>
               </div>
+              <div class="x-thead" aria-hidden="true"><span class="x-thead__n">#</span><span class="x-thead__t">Title</span><span class="x-thead__a">Artist</span><span class="x-thead__d">Time</span></div>
               <ul class="x-list" id="list"></ul>
               <p class="x-empty" id="empty" hidden>No tracks match your search.</p>
               <div class="x-blank" id="libEmpty" hidden>
@@ -950,6 +1115,7 @@
         </main>
 
         <div class="x-bar">
+          <p class="x-brand x-side__brand"><img class="x-brand__badge" src="neska-emblem.png" alt="" width="48" height="48" /><span class="x-brand__txt"><span class="x-brand__name">Neska<span class="x-tm">™</span> Music</span><span class="x-brand__tag">Global Sound</span></span></p>
           <div class="x-mini" id="mini" hidden>
             <button class="x-mini__open" id="miniOpen" type="button" aria-label="Open Now Playing">
               <canvas id="miniCanvas" width="96" height="96" aria-hidden="true"></canvas>
@@ -986,6 +1152,17 @@
               Search
             </button>
           </nav>
+          <label class="x-add x-side__add" for="fileInput" role="button" tabindex="0">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            Add songs
+          </label>
+          <div class="x-side__acct" id="sideAcct"></div>
+        </div>
+
+        <div class="x-dbar" id="dbar" role="region" aria-label="Player">
+          <div class="x-dbar__l" id="dbarL"></div>
+          <div class="x-dbar__c" id="dbarC"></div>
+          <div class="x-dbar__r" id="dbarR"></div>
         </div>
 
         <div class="x-toast" id="toast" role="status" aria-live="polite"></div>
@@ -2792,9 +2969,13 @@
     var tag = e.target && e.target.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA" || e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.target && e.target.closest && e.target.closest("#auth, #acct, #setSheet")) return;
+    if (e.target && e.target.isContentEditable) return;
+    var desk = !!(window.matchMedia && window.matchMedia("(min-width: 900px)").matches);
     if (e.key === " " || e.code === "Space") { e.preventDefault(); toggle(); }
-    else if (e.key === "ArrowRight") { e.preventDefault(); seekBy(10); }
-    else if (e.key === "ArrowLeft") { e.preventDefault(); seekBy(-10); }
+    else if (desk && e.shiftKey && e.key === "ArrowRight") { e.preventDefault(); $("nextBtn").click(); }
+    else if (desk && e.shiftKey && e.key === "ArrowLeft") { e.preventDefault(); $("prevBtn").click(); }
+    else if (e.key === "ArrowRight") { e.preventDefault(); seekBy(desk ? 5 : 10); }
+    else if (e.key === "ArrowLeft") { e.preventDefault(); seekBy(desk ? -5 : -10); }
   });
 
   // swipe artwork
@@ -2823,8 +3004,11 @@
 
   /* ---------- Views ---------- */
   function showView(v) {
+    // Desktop (≥900px): Now playing is the side panel, so it never replaces the main view
+    var desk = !!(window.matchMedia && window.matchMedia("(min-width: 900px)").matches);
+    if (v === "now" && desk) return;
     var now = v === "now";
-    $("view-now").classList.toggle("is-active", now);
+    $("view-now").classList.toggle("is-active", now || desk);
     ["home", "lib", "pl", "search"].forEach(function (k) {
       $("view-" + k).classList.toggle("is-active", k === v);
       $("tab-" + k).setAttribute("aria-selected", String(k === v));
@@ -3300,7 +3484,8 @@
   }
   function placeAcct() {
     var chip = $("acct"), v = document.querySelector(".x-view.is-active"), b = null;
-    if (v) { // the first header row not inside a hidden part (an open playlist has its own)
+    if (window.matchMedia && window.matchMedia("(min-width: 900px)").matches && $("sideAcct")) b = $("sideAcct"); // desktop: foot of the sidebar
+    else if (v) { // the first header row not inside a hidden part (an open playlist has its own)
       var rows = v.querySelectorAll(".x-brand");
       for (var i = 0; i < rows.length && !b; i++) if (!rows[i].closest("[hidden]")) b = rows[i];
     }
@@ -3318,6 +3503,11 @@
     ["plIndex", "plDetail"].forEach(function (id) { if ($(id)) acctObs.observe($(id), { attributes: true, attributeFilter: ["hidden"] }); });
   }
   placeAcct();
+  if (window.matchMedia) {
+    var deskMQ = window.matchMedia("(min-width: 900px)");
+    if (deskMQ.addEventListener) deskMQ.addEventListener("change", function () { setTimeout(placeAcct, 0); });
+    else if (deskMQ.addListener) deskMQ.addListener(function () { setTimeout(placeAcct, 0); });
+  }
   var creditDefault = null;
   function setCredit() {
     var c = document.querySelector(".x-credit"); if (!c) return;
@@ -4354,6 +4544,79 @@
   $("lyrForm").addEventListener("submit", function (e) { e.preventDefault(); commit(ta.value); });
   dlg.addEventListener("click", function (e) { if (e.target === dlg) closeEdit(); });
   dlg.addEventListener("keydown", function (e) { if (e.key === "Escape") { e.preventDefault(); closeEdit(); } });
+})();
+    </script>
+    <script>
+/* ===== Desktop layout (≥900px): bottom player bar and Now playing panel ===== */
+(function () {
+  "use strict";
+  if (!window.matchMedia) return;
+  var $ = function (id) { return document.getElementById(id); };
+  var P = window.NeskaPlayer, app = $("app"), panel = $("view-now");
+  var mq = window.matchMedia("(min-width: 900px)"), wide = window.matchMedia("(min-width: 1200px)");
+  // Nodes that move into the bottom bar on desktop; a comment marks each one's home so it returns exactly
+  var moves = [
+    [$("miniOpen"), "dbarL"],
+    [panel.querySelector(".x-controls"), "dbarC"],
+    [$("seek").parentNode, "dbarC"],
+    [$("setBtn"), "dbarR"],
+    [$("volumeRow"), "dbarR"],
+    [$("volNote"), "dbarR"]
+  ].filter(function (m) { return m[0]; });
+
+  function activeLib() {
+    var k = ["home", "lib", "pl", "search"].filter(function (v) { return $("view-" + v).classList.contains("is-active"); })[0];
+    return k || null;
+  }
+  function apply() {
+    var desk = mq.matches;
+    moves.forEach(function (m) {
+      var el = m[0];
+      if (desk) {
+        if (!m.ph) { m.ph = document.createComment("desktop"); el.parentNode.insertBefore(m.ph, el); }
+        $(m[1]).appendChild(el);
+      } else if (m.ph && m.ph.parentNode) {
+        m.ph.parentNode.insertBefore(el, m.ph);
+      }
+    });
+    if (desk) { panel.setAttribute("tabindex", "-1"); if (P && P.showView) P.showView(activeLib() || "home"); }
+    else {
+      panel.removeAttribute("tabindex"); app.classList.remove("x-panel-open"); $("tab-now").removeAttribute("aria-expanded");
+      if (P && P.showView && panel.classList.contains("is-active") && activeLib()) P.showView(activeLib());
+    }
+    window.dispatchEvent(new Event("resize"));
+  }
+
+  // Playing tab and the bar's track: focus the panel (or slide it in below 1200px)
+  var flashT = 0;
+  function openPanel() {
+    if (!mq.matches) return;
+    if (!wide.matches) {
+      var open = !app.classList.contains("x-panel-open");
+      app.classList.toggle("x-panel-open", open);
+      $("tab-now").setAttribute("aria-expanded", String(open));
+      if (!open) return;
+    }
+    try { panel.focus({ preventScroll: true }); } catch (e) {}
+    panel.classList.add("is-flash"); clearTimeout(flashT);
+    flashT = setTimeout(function () { panel.classList.remove("is-flash"); }, 700);
+  }
+  $("tab-now").addEventListener("click", openPanel);
+  $("miniOpen").addEventListener("click", openPanel);
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && app.classList.contains("x-panel-open")) { app.classList.remove("x-panel-open"); $("tab-now").setAttribute("aria-expanded", "false"); }
+  });
+  document.addEventListener("click", function (e) {
+    if (!app.classList.contains("x-panel-open") || wide.matches) return;
+    if (panel.contains(e.target) || e.target.closest("#tab-now, #miniOpen, .x-confirm, .x-menu")) return;
+    app.classList.remove("x-panel-open"); $("tab-now").setAttribute("aria-expanded", "false");
+  });
+  function onWide() { if (wide.matches) { app.classList.remove("x-panel-open"); $("tab-now").removeAttribute("aria-expanded"); } }
+
+  function listen(q, fn) { if (q.addEventListener) q.addEventListener("change", fn); else if (q.addListener) q.addListener(fn); }
+  listen(mq, apply);
+  listen(wide, onWide);
+  if (mq.matches) apply();
 })();
     </script>
   </body>
