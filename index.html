@@ -1314,6 +1314,9 @@
               <button type="button" class="x-set__row" id="autoSw" role="switch" aria-checked="true">
                 <span class="x-set__txt">Autoplay<small>Keep playing similar songs when the queue ends</small></span><span class="x-switch" aria-hidden="true"></span>
               </button>
+              <button type="button" class="x-set__row" id="fbSw" role="switch" aria-checked="false">
+                <span class="x-set__txt">Feedback sounds<small>Soft clicks when you tap controls.</small></span><span class="x-switch" aria-hidden="true"></span>
+              </button>
             </div>
             <div>
               <label class="x-eq-pre">Crossfade<input type="range" id="xfSec" min="0" max="12" step="1" value="6" aria-valuetext="6 seconds" aria-describedby="xfNote" /><output id="xfVal">6 s</output></label>
@@ -2353,7 +2356,9 @@
   });
   $("speedSeg").addEventListener("click", function (e) {
     var b = e.target.closest("button"); if (!b) return;
-    rate = +b.dataset.rate; applyRate(); updatePositionState(); syncSettings();
+    var nr = +b.dataset.rate;
+    if (nr !== rate) { if (br) brCancel(wantsPlay); brRelease(); } // the fade was timed for the old speed
+    rate = nr; applyRate(); updatePositionState(); syncSettings();
   });
   $("repSeg").addEventListener("click", function (e) {
     var b = e.target.closest("button"); if (!b || b.dataset.mode === repeat) return;
@@ -2366,6 +2371,43 @@
     toast(autoplay ? "Autoplay on" : "Autoplay off");
   });
   onAudio("loadedmetadata", function () { if (audio.playbackRate !== rate) applyRate(); });
+
+  /* ---------- Feedback sounds: a soft tick on control taps (off by default) ----------
+     Its own tiny AudioContext, made on the first tap after the switch is on; songs never go through it. */
+  var FB_KEY = "neska.fbsnd", fbOn = false, fbCtx = null, fbFailed = false;
+  try { fbOn = window.localStorage.getItem(FB_KEY) === "1"; } catch (e) {}
+  function syncFb() { $("fbSw").setAttribute("aria-checked", String(fbOn)); }
+  function fbTick(low) {
+    if (!fbOn || fbFailed || document.hidden) return;
+    try {
+      if (!fbCtx) {
+        var AC = window.AudioContext || window.webkitAudioContext; if (!AC) { fbFailed = true; return; }
+        fbCtx = new AC();
+      }
+      if (fbCtx.state !== "running") { var p = fbCtx.resume(); if (p && p.catch) p.catch(function () {}); }
+      var c = fbCtx.currentTime, o = fbCtx.createOscillator(), g = fbCtx.createGain();
+      o.type = "sine"; o.frequency.setValueAtTime(low ? 800 : 1200, c);
+      g.gain.setValueAtTime(0.0001, c);
+      g.gain.exponentialRampToValueAtTime(0.05, c + 0.003);
+      g.gain.exponentialRampToValueAtTime(0.0001, c + 0.05);
+      o.connect(g); g.connect(fbCtx.destination);
+      o.start(c); o.stop(c + 0.06);
+      o.onended = function () { try { o.disconnect(); g.disconnect(); } catch (e) {} };
+    } catch (e) { fbFailed = true; }
+  }
+  $("fbSw").addEventListener("click", function () {
+    fbOn = !fbOn;
+    try { window.localStorage.setItem(FB_KEY, fbOn ? "1" : "0"); } catch (e) {}
+    syncFb();
+  });
+  syncFb();
+  document.addEventListener("click", function (e) { // capture: read the play state before the tap changes it
+    var el = e.target && e.target.closest ? e.target.closest("button") : null; if (!el || !fbOn) return;
+    var id = el.id;
+    if (id === "playBtn" || id === "miniPlay") { if (tracks.length) fbTick(isPlaying()); } // lower tick when this tap pauses
+    else if (/^(nextBtn|miniNext|prevBtn|shuffleBtn|repeatBtn)$/.test(id) || /^tab-/.test(id)) fbTick(false);
+    else if (el.dataset.act === "playlist" || (el.dataset.pl != null && el.closest("#plSheetList"))) fbTick(false);
+  }, true);
 
   /* ---------- Studio sound: EQ + mono via Web Audio (session only) ----------
      No AudioContext exists until the switch is first turned on. Each <audio> joins the chain
@@ -2542,7 +2584,7 @@
       return brDecode(ab).then(null, function () { throw p.dead ? 0 : "decode failed"; });
     }).then(function (b) {
       if (p.dead) throw 0;
-      if (!b || b.duration < 2 * xfSec) throw "song too short for this fade";
+      if (!b || b.duration / rate < 2 * xfSec) throw "song too short for this fade";
       return b;
     });
   }
@@ -2575,12 +2617,12 @@
   function brCheck() {
     if (pmActive() || PM.busy && pmOn) return; // the pre-mix owns this change
     if (br || !xfSec || seeking || audio.paused || !wantsPlay || (document.hidden && !liveActive())) return;
-    var t = tracks[cur], d = audio.duration, rem = d - (audio.currentTime || 0), src = audio.getAttribute("src");
-    if (rate !== 1) { if (t && isFinite(d) && d >= 2 * xfSec && rem <= xfSec && rem >= 1 && brPick()) brSkip("speed not 1×"); return; }
-    if (!t || !src || !isFinite(d) || d < 2 * xfSec || rem > xfSec + 25) return;
+    // times here are wall-clock: song time divided by the speed
+    var t = tracks[cur], d = audio.duration, rem = (d - (audio.currentTime || 0)) / rate, src = audio.getAttribute("src");
+    if (!t || !src || !isFinite(d) || d / rate < 2 * xfSec || rem > xfSec + 25) return;
     var nx = brPick(); if (!nx) return;
     var due = rem <= xfSec && rem >= 1;
-    var key = t.id + ">" + nx.t.id + ">" + xfSec;
+    var key = t.id + ">" + nx.t.id + ">" + xfSec + ">" + rate;
     if (!prep || prep.key !== key || prep.src !== src) {
       brRelease();
       if (!window.fetch || !window.Promise) { if (due) brSkip("not supported in this browser"); return; }
@@ -2602,10 +2644,10 @@
   /* the fade: buffers take over from the element, cross equal-power, and hand back */
   function brStart(p, rem) {
     prep = null; // the buffers now belong to this fade
-    var ctx = bridgeCtx, off = (audio.currentTime || 0) + 0.05;
-    var T = Math.min(xfSec, rem, p.out.duration - off);
+    var s = rate, ctx = bridgeCtx, off = (audio.currentTime || 0) + 0.05 * s; // off: song time; T: real seconds
+    var T = Math.min(xfSec, rem, (p.out.duration - off) / s);
     if (!(T >= 1)) { brSkip("not enough time left in the song"); return; }
-    var b = { nx: p.nx, nxSrc: p.nxSrc, outBuf: p.out, inBuf: p.inn, srcs: [], nodes: [], timers: [], mid: false, back: false, live: true, at: null };
+    var b = { rate: s, nx: p.nx, nxSrc: p.nxSrc, outBuf: p.out, inBuf: p.inn, srcs: [], nodes: [], timers: [], mid: false, back: false, live: true, at: null };
     try {
       var t0 = ctx.currentTime, tF = t0 + 0.02, N = 64, cosC = new Float32Array(N), sinC = new Float32Array(N);
       for (var i = 0; i < N; i++) { var a = i / (N - 1) * Math.PI / 2; cosC[i] = Math.cos(a); sinC[i] = Math.sin(a); }
@@ -2614,6 +2656,7 @@
       var iS = ctx.createBufferSource(), iF = ctx.createGain(), iB = ctx.createGain();
       b.master = master; b.iB = iB; b.srcs = [oS, iS]; b.nodes = [oS, oSwap, oF, iS, iF, iB, master];
       oS.buffer = b.outBuf; iS.buffer = b.inBuf;
+      oS.playbackRate.value = s; iS.playbackRate.value = s; // pitch follows speed, during the fade only
       oS.connect(oSwap); oSwap.connect(oF); oF.connect(master);
       iS.connect(iF); iF.connect(iB); iB.connect(master);
       master.connect(ctx.destination);
@@ -2627,11 +2670,11 @@
     audio.pause(); // the buffer carries the song from here
     b.timers.push(setTimeout(brMid, (0.02 + T / 2) * 1000), setTimeout(brEnd, (0.02 + T) * 1000), setInterval(brTick, 250));
   }
-  function brPos() { // where the song on screen is, in seconds
+  function brPos() { // where the song on screen is, in song seconds (real seconds × speed)
     var b = br; if (!b) return audio.currentTime || 0;
     if (b.at != null) return b.at;
-    var c = bridgeCtx.currentTime;
-    return b.mid ? Math.max(0, c - b.tF) : b.off + Math.max(0, c - b.t0);
+    var c = bridgeCtx.currentTime, s = b.rate || 1;
+    return b.mid ? Math.max(0, c - b.tF) * s : b.off + Math.max(0, c - b.t0) * s;
   }
   function brTick() { if (!br) return; if (!seeking) updateTime(); throttlePosition(); }
   function brMid() { // halfway: the next song becomes the current one and the UI follows it
@@ -2659,7 +2702,8 @@
     audio.src = b.nxSrc || b.nx.t.src; audio.load(); applyRate();
     b.onMeta = function () { // start the element where the buffer is, a little ahead
       if (br !== b) return;
-      var d = audio.duration, at = brPos() + (b.at != null ? 0 : 0.12);
+      applyRate(); // same speed as the bridge, pitch preserved
+      var d = audio.duration, at = brPos() + (b.at != null ? 0 : 0.12 * (b.rate || 1));
       if (isFinite(d)) at = Math.min(at, d - 0.5);
       try { audio.currentTime = Math.max(0, at); } catch (e) {}
     };
