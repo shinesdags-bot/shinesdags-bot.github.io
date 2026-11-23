@@ -5034,17 +5034,23 @@
   function ytUrl(it) {
     return it.kind === "video" ? "https://www.youtube.com/watch?v=" + encodeURIComponent(it.id) : "https://www.youtube.com/playlist?list=" + encodeURIComponent(it.id);
   }
-  function noembed(url) {
-    if (!window.fetch) return Promise.reject(new Error("no fetch"));
-    var req = fetch("https://noembed.com/embed?url=" + encodeURIComponent(url)).then(function (r) {
-      if (!r.ok) throw new Error("noembed " + r.status);
+  function oembedFrom(endpoint, url) {
+    var req = fetch(endpoint + encodeURIComponent(url)).then(function (r) {
+      if (r.status !== 200) throw new Error("oembed " + r.status);
       return r.json();
     }).then(function (j) {
-      if (!j || j.error || !j.title) throw new Error("noembed: no title");
+      if (!j || j.error || !j.title) throw new Error("oembed: no title");
       return j;
     });
     var late = new Promise(function (res, rej) { setTimeout(function () { rej(new Error("timeout")); }, 8000); });
     return Promise.race([req, late]);
+  }
+  // YouTube's own oEmbed first (canonical watch/playlist URL), then noembed
+  function noembed(url, canon) {
+    if (!window.fetch) return Promise.reject(new Error("no fetch"));
+    return oembedFrom("https://www.youtube.com/oembed?format=json&url=", canon || url).catch(function () {
+      return oembedFrom("https://noembed.com/embed?url=", url);
+    });
   }
 
   /* ---------- Thumbnails: the photo, or Neska's procedural artwork ---------- */
@@ -5133,7 +5139,7 @@
     var fallbackThumb = p.first ? "https://i.ytimg.com/vi/" + p.first + "/hqdefault.jpg" : "";
     var fallbackTitle = p.kind === "video" ? "YouTube video" : "YouTube playlist";
     // a playlist asks for its own page, so a watch?v=…&list=… link isn't named after one video
-    noembed(p.kind === "video" ? p.url : ytUrl(p)).then(function (j) {
+    noembed(p.kind === "video" ? p.url : ytUrl(p), ytUrl(p)).then(function (j) {
       return { title: String(j.title).slice(0, 200), thumb: j.thumbnail_url || fallbackThumb };
     }, function () {
       return { title: fallbackTitle, thumb: fallbackThumb };
