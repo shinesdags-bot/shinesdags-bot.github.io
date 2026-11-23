@@ -1004,6 +1004,78 @@
       @media (prefers-reduced-motion: reduce) {
         .x-ctl.x-ctl.x-3d.x-3d.x-3d, .x-ctl.x-ctl.x-3d.x-3d.x-3d:not(:disabled):is(:active, .is-pressed) { transform: none; }
       }
+
+      /* ===== Desktop mini player (Document Picture-in-Picture, ≥900px only) ===== */
+      #pipBtn[hidden] { display: none !important; }
+      @media (max-width: 899px) { #pipBtn { display: none !important; } }
+      /* Styles below only match inside the mini player window */
+      html.x-pipdoc, html.x-pipdoc body {
+        height: 100%; margin: 0; overflow: hidden;
+        background: radial-gradient(90% 70% at 50% 0%, rgba(201, 138, 155, 0.38) 0%, transparent 60%), radial-gradient(70% 60% at 85% 100%, rgba(232, 196, 168, 0.16) 0%, transparent 70%), radial-gradient(120% 100% at 50% 20%, #4a1838 0%, #37112c 50%, #2a0b22 100%);
+      }
+      .x-pip {
+        --n-gold: linear-gradient(135deg, #b76e79 0%, #e8c4a8 55%, #f7e1cf 100%);
+        --n-line: rgba(232, 196, 168, 0.2);
+        --n-serif: "Cormorant Garamond", "Cormorant", "Playfair Display", "Bodoni 72", "Didot", "Bodoni MT", "Iowan Old Style", Georgia, serif;
+        --text-primary: #fbeaf0; --text-secondary: #cfa6bb; --text-primary-on: #3b1230; --fill-primary: #e8c4a8;
+        position: fixed; inset: 8px; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px; min-height: 0;
+        padding: 10px 14px 12px; border-radius: var(--r-m); color: var(--text-primary); font: var(--type-body);
+        background: rgba(74, 24, 56, 0.42); border: 1px solid var(--n-line);
+        -webkit-backdrop-filter: blur(22px) saturate(140%); backdrop-filter: blur(22px) saturate(140%);
+        box-shadow: inset 0 1px 0 rgba(255, 240, 230, 0.12), 0 10px 30px rgba(20, 2, 16, 0.45);
+        user-select: none; -webkit-user-select: none;
+      }
+      .x-pip button { font: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+      .x-pip svg { display: block; }
+      .x-pip :focus-visible { outline: 2px solid #e8c4a8; outline-offset: 3px; }
+      .x-pip__brand { margin: 0; display: flex; align-items: center; justify-content: center; gap: 6px; flex: none; font: var(--weight-medium) 12px/1 var(--sans); letter-spacing: 0.22em; text-transform: uppercase; color: #e8c4a8; }
+      .x-pip__brand img { width: 16px; height: 16px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 1px rgba(232, 196, 168, 0.5), 0 0 8px rgba(232, 196, 168, 0.45); }
+      .x-pip__art {
+        position: relative; flex: 0 1 auto; align-self: center; aspect-ratio: 1; overflow: hidden; border-radius: 14px;
+        width: min(100%, max(0px, calc(100vh - 222px))); background: linear-gradient(160deg, #6a2a55, #2a0b22);
+        box-shadow: 0 0 0 1px rgba(232, 196, 168, 0.4), 0 0 26px rgba(201, 138, 155, 0.4), 0 10px 24px rgba(20, 2, 16, 0.5);
+        transition: box-shadow 400ms var(--ease-out);
+      }
+      .x-pip.is-playing .x-pip__art { box-shadow: 0 0 0 1.5px rgba(247, 225, 207, 0.6), 0 0 36px 4px rgba(232, 170, 160, 0.48), 0 10px 24px rgba(20, 2, 16, 0.5); }
+      .x-pip__art canvas, .x-pip__art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+      .x-pip__art [hidden] { display: none; }
+      .x-pip__info { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; flex: none; min-width: 0; }
+      .x-pip__title { margin: 0; font: 600 20px/1.2 var(--n-serif); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #f2d6c4; }
+      @supports (-webkit-background-clip: text) {
+        .x-pip__title { background: linear-gradient(100deg, #d99a9f 0%, #f7e1cf 45%, #e8c4a8 70%, #c98a9b 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+      }
+      .x-pip__artist { margin: 0; font: var(--type-caption); color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .x-pip__seekrow { flex: none; }
+      .x-pip .x-seek { height: 20px; }
+      .x-pip.is-empty .x-seek { opacity: 0.35; pointer-events: none; }
+      .x-pip__times { display: flex; justify-content: space-between; font: var(--type-caption); font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+      .x-pip__ctls { display: flex; align-items: center; justify-content: center; gap: 10px; flex: none; }
+      .x-pip .x-ctl { width: 38px; height: 38px; }
+      .x-pip .x-ctl svg { width: 18px; height: 18px; }
+      .x-pip .x-ctl--mode { width: 30px; height: 30px; }
+      .x-pip .x-ctl--mode svg { width: 14px; height: 14px; }
+      .x-pip .x-ctl--mode::after { bottom: -7px !important; }
+      .x-pip .x-one { top: -3px; right: -4px; }
+      .x-pip .x-play { width: 48px; height: 48px; margin: 0 4px; }
+      .x-pip .x-play svg { width: 22px; height: 22px; }
+      .x-pip.is-playing .x-play.x-3d.x-3d.x-3d { box-shadow: inset 0 2px 1px rgba(255, 255, 255, 0.55), inset 0 -3px 6px rgba(60, 10, 30, 0.45), 0 0 0 2px rgba(120, 60, 60, 0.6), 0 8px 18px rgba(20, 0, 15, 0.55), 0 0 40px rgba(232, 196, 168, 0.5); }
+      /* Short window: no cover, one horizontal bar */
+      @media (max-height: 219px) {
+        .x-pip { padding: 8px 12px; gap: 6px; display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "brand brand" "info ctls" "seek seek"; align-items: center; align-content: center; }
+        .x-pip__art { display: none; }
+        .x-pip__brand { grid-area: brand; justify-content: flex-start; }
+        .x-pip__info { grid-area: info; }
+        .x-pip__title { font-size: 17px; }
+        .x-pip__ctls { grid-area: ctls; gap: 6px; }
+        .x-pip__seekrow { grid-area: seek; }
+        .x-pip .x-ctl { width: 32px; height: 32px; }
+        .x-pip .x-play { width: 38px; height: 38px; margin: 0 2px; }
+        .x-pip .x-play svg { width: 18px; height: 18px; }
+        .x-pip .x-ctl--mode { width: 26px; height: 26px; }
+      }
+      @media (max-height: 219px) and (max-width: 300px) { .x-pip .x-ctl--mode { display: none; } }
+      @media (max-height: 130px) { .x-pip__brand { display: none; } .x-pip { grid-template-areas: "info ctls" "seek seek"; } }
+      @media (prefers-reduced-motion: reduce) { .x-pip__art { transition: none; } }
     </style>
       <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png" />
@@ -1319,7 +1391,7 @@
         <div class="x-dbar" id="dbar" role="region" aria-label="Player">
           <div class="x-dbar__l" id="dbarL"></div>
           <div class="x-dbar__c" id="dbarC"></div>
-          <div class="x-dbar__r" id="dbarR"></div>
+          <div class="x-dbar__r" id="dbarR"><button class="x-ctl x-ctl--mode x-3d" id="pipBtn" type="button" title="Mini player" aria-label="Mini player" aria-pressed="false" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="4.5" width="19" height="15" rx="2.5"/><rect x="12" y="11.5" width="7" height="5.5" rx="1.2" fill="currentColor" stroke="none"/></svg></button></div>
         </div>
 
         <div class="x-toast" id="toast" role="status" aria-live="polite"></div>
@@ -5579,6 +5651,7 @@
 
   /* ---------- YouTube view ---------- */
   var yp = null, ready = false, cur = null, single = false, vids = [], vidIdx = -1, shuf = false;
+  var ytLive = false; // YouTube played last (not Neska's audio); read by the desktop mini player
   var titles = {}, queue = [], pend = {}, active = 0, io = null;
   var vul = $("ytVideos"), playBtn = $("ytPlay");
 
@@ -5627,7 +5700,7 @@
       try { yp.pauseVideo(); } catch (e) {}
       try { yp.destroy(); } catch (e) {}
     }
-    yp = null; ready = false; cur = null; vids = []; vidIdx = -1;
+    yp = null; ready = false; cur = null; vids = []; vidIdx = -1; ytLive = false;
     if (io) io.disconnect();
     queue.forEach(function (id) { delete pend[id]; }); queue = [];
     vul.innerHTML = ""; setPlaying(false); freshHost();
@@ -5646,13 +5719,14 @@
   function onReady() { ready = true; refresh(); }
   function onState(e) {
     var s = e.data;
-    if (s === 1) P.stop(); // YouTube started: pause Neska's <audio> and drop any crossfade bridge
+    if (s === 1) { P.stop(); ytLive = true; } // YouTube started: pause Neska's <audio> and drop any crossfade bridge
     setPlaying(s === 1 || s === 3);
     refresh();
   }
   function onErr() { P.toast("This video can't play here.", true); }
   // Neska started a song: YouTube pauses, so the two never play together
   P.audio().addEventListener("play", function () {
+    ytLive = false;
     if (!yp || !ready) return;
     try { var s = yp.getPlayerState(); if (s === 1 || s === 3) yp.pauseVideo(); } catch (e) {}
   });
@@ -5745,7 +5819,235 @@
     if (single) yp.playVideo(); else yp.playVideoAt(+b.dataset.i);
   });
 
+  /* ---------- Read-only state for the desktop mini player (controls go through the buttons above) ---------- */
+  function vData() { try { return (yp && yp.getVideoData && yp.getVideoData()) || {}; } catch (e) { return {}; } }
+  function vidNow() { var d = vData(); return d.video_id || (single && cur ? cur.id : vids[vidIdx]) || ""; }
+  window.NeskaYT = {
+    live: function () { return ytLive && ok(); },
+    playing: function () { if (!ok()) return false; try { var s = yp.getPlayerState(); return s === 1 || s === 3; } catch (e) { return false; } },
+    id: vidNow,
+    title: function () { var id = vidNow(), t = titles[id], d = vData(); return (t && t.t) || d.title || (cur ? cur.title : "YouTube"); },
+    artist: function () { var id = vidNow(), t = titles[id], d = vData(); return (t && t.a) || d.author || "YouTube"; },
+    time: function () { try { return ok() ? yp.getCurrentTime() || 0 : 0; } catch (e) { return 0; } },
+    dur: function () { try { return ok() ? yp.getDuration() || 0 : 0; } catch (e) { return 0; } },
+    seek: function (t) { if (ok()) { try { yp.seekTo(t, true); } catch (e) {} } },
+    multi: function () { return !single; },
+    shuffled: function () { return shuf; }
+  };
+
   render();
+})();
+    </script>
+    <script>
+/* ===== Desktop mini player: Document Picture-in-Picture (≥900px, Chrome/Edge only) =====
+   The <audio> element stays in this page; the window only mirrors state and clicks the bar's own buttons. */
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var btn = $("pipBtn"), P = window.NeskaPlayer;
+  if (!btn || !P || !window.matchMedia || !("documentPictureInPicture" in window)) return; // unsupported: button stays hidden
+  var mq = window.matchMedia("(min-width: 900px)");
+  var pw = null, opening = false;
+  btn.hidden = false;
+
+  function setActive(on) { btn.setAttribute("aria-pressed", String(on)); }
+  function fmt(s) {
+    if (!isFinite(s) || s < 0) return "--:--";
+    s = Math.floor(s);
+    var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), x = s % 60;
+    return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(x).padStart(2, "0");
+  }
+  function toggleWin() {
+    if (pw) { try { pw.close(); } catch (e) {} return; }
+    if (opening || !mq.matches) return;
+    opening = true;
+    var req;
+    try { req = window.documentPictureInPicture.requestWindow({ width: 320, height: 380 }); } // inside the user's gesture
+    catch (e) { opening = false; return; }
+    Promise.resolve(req).then(function (w) { opening = false; build(w); }, function () { opening = false; });
+  }
+  btn.addEventListener("click", toggleWin);
+  document.addEventListener("keydown", function (e) {
+    if ((e.key !== "m" && e.key !== "M") || e.metaKey || e.ctrlKey || e.altKey || e.repeat) return;
+    var t = e.target, tag = t && t.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (t && t.isContentEditable)) return;
+    if (t && t.closest && t.closest("#auth, #acct, #setSheet, [role=dialog]")) return;
+    if (!mq.matches) return;
+    e.preventDefault(); toggleWin();
+  });
+
+  function yt() { var Y = window.NeskaYT; return Y && Y.live() ? Y : null; }
+
+  function build(w) {
+    pw = w;
+    var d = w.document, html = d.documentElement;
+    html.className = "x-pipdoc";
+    html.lang = document.documentElement.lang || "en";
+    var th = document.documentElement.getAttribute("data-theme"); if (th) html.setAttribute("data-theme", th);
+    d.title = "Neska\u2122 Music";
+    // The page's stylesheets, so the mini player shares the bar's look
+    [].forEach.call(document.querySelectorAll('style, link[rel="stylesheet"]'), function (n) {
+      var c;
+      if (n.tagName === "LINK") {
+        c = d.createElement("link"); c.rel = "stylesheet"; c.href = n.href;
+        if (n.media) c.media = n.media;
+        if (n.crossOrigin != null) c.crossOrigin = n.crossOrigin;
+      } else c = d.importNode(n, true);
+      d.head.appendChild(c);
+    });
+
+    function ctl(k, cls, label, src) { return '<button type="button" class="' + cls + '" data-k="' + k + '" aria-label="' + label + '">' + $(src).innerHTML + "</button>"; }
+    var root = d.createElement("div");
+    root.className = "x-pip";
+    root.setAttribute("role", "region"); root.setAttribute("aria-label", "Mini player");
+    root.innerHTML =
+      '<p class="x-pip__brand"><span>Neska\u2122 Music</span></p>' +
+      '<div class="x-pip__art"><canvas width="512" height="512" aria-hidden="true"></canvas><img alt="" hidden /></div>' +
+      '<div class="x-pip__info"><p class="x-pip__title"></p><p class="x-pip__artist"></p></div>' +
+      '<div class="x-pip__seekrow"><div class="x-seek" role="slider" tabindex="0" aria-label="Seek" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">' +
+      '<div class="x-seek__track"><div class="x-seek__fill"></div><div class="x-seek__thumb" style="left:0"></div></div></div>' +
+      '<div class="x-pip__times"><span>0:00</span><span>--:--</span></div></div>' +
+      '<div class="x-pip__ctls">' +
+      ctl("shuffle", "x-ctl x-ctl--mode x-3d", "Shuffle", "shuffleBtn") +
+      ctl("prev", "x-ctl x-3d", "Previous", "prevBtn") +
+      ctl("play", "x-ctl x-play x-3d", "Play", "playBtn") +
+      ctl("next", "x-ctl x-3d", "Next", "nextBtn") +
+      ctl("repeat", "x-ctl x-ctl--mode x-3d", "Repeat: off", "repeatBtn") +
+      "</div>";
+    d.body.appendChild(root);
+    var q = function (s) { return root.querySelector(s); };
+    var badge = $("brandBadge"), brand = q(".x-pip__brand");
+    if (badge && badge.src) { var em = d.createElement("img"); em.alt = ""; em.width = em.height = 16; em.src = badge.src; brand.insertBefore(em, brand.firstChild); }
+
+    var cv = q("canvas"), img = q(".x-pip__art img"), tEl = q(".x-pip__title"), aEl = q(".x-pip__artist");
+    var seek = q(".x-seek"), fill = q(".x-seek__fill"), thumb = q(".x-seek__thumb"), times = q(".x-pip__times").children;
+    var b = {}, last = { key: null, cover: null }, drag = null, du = 0;
+    [].forEach.call(root.querySelectorAll("[data-k]"), function (x) { b[x.getAttribute("data-k")] = x; });
+
+    function syncInfo() {
+      var Y = yt(), t = P.current(), title, artist;
+      root.classList.toggle("is-empty", !Y && !t);
+      if (Y) { title = Y.title(); artist = Y.artist(); }
+      else if (t) { title = t.title; artist = t.artist; }
+      else { title = "Neska\u2122 Music"; artist = "Add songs to start"; }
+      if (tEl.textContent !== title) { tEl.textContent = title; tEl.title = title; d.title = title + " \u00b7 Neska\u2122 Music"; }
+      if (aEl.textContent !== artist) aEl.textContent = artist;
+      // cover: the track's own art, or the same procedural canvas; a video's thumbnail
+      var vid = Y ? Y.id() : "", key = Y ? "yt:" + vid : t ? t.id : "", cover = !Y && t ? t.coverURL || "" : "";
+      if (key !== last.key || cover !== last.cover) {
+        last.key = key; last.cover = cover;
+        if (vid) { img.src = "https://i.ytimg.com/vi/" + encodeURIComponent(vid) + "/hqdefault.jpg"; img.hidden = false; cv.hidden = true; }
+        else { img.hidden = true; img.removeAttribute("src"); cv.hidden = false; P.paint(cv, Y ? null : t || null); }
+      }
+      // controls mirror the bar (or the YouTube controls)
+      var mp = $("playBtn"), playing, busy;
+      if (Y) { playing = Y.playing(); busy = false; }
+      else { playing = mp.classList.contains("is-playing"); busy = mp.classList.contains("is-loading"); }
+      b.play.classList.toggle("is-playing", playing);
+      b.play.classList.toggle("is-loading", busy);
+      b.play.setAttribute("aria-label", playing ? "Pause" : "Play");
+      b.play.disabled = Y ? false : mp.disabled;
+      root.classList.toggle("is-playing", Y ? playing : $("app").classList.contains("is-playing"));
+      b.prev.disabled = Y ? !Y.multi() : $("prevBtn").disabled;
+      b.next.disabled = Y ? !Y.multi() : $("nextBtn").disabled;
+      var shOn = Y ? Y.shuffled() : $("shuffleBtn").getAttribute("aria-pressed") === "true";
+      b.shuffle.disabled = Y ? !Y.multi() : $("shuffleBtn").disabled;
+      b.shuffle.setAttribute("aria-pressed", String(shOn));
+      b.shuffle.setAttribute("aria-label", shOn ? "Shuffle: on" : "Shuffle: off");
+      var mode = Y ? "off" : $("repeatBtn").getAttribute("data-mode") || "off";
+      b.repeat.disabled = Y ? true : $("repeatBtn").disabled;
+      b.repeat.setAttribute("data-mode", mode);
+      b.repeat.setAttribute("aria-label", "Repeat: " + mode);
+    }
+    function syncTime() {
+      var Y = yt(), c;
+      if (Y) { c = Y.time(); du = Y.dur(); }
+      else {
+        var t = P.current();
+        c = t ? P.time() || 0 : 0; du = t ? P.dur() : 0;
+        if (!(isFinite(du) && du > 0)) du = (t && t.duration) || 0;
+      }
+      if (drag) c = drag.r * du;
+      var r = du ? Math.max(0, Math.min(1, c / du)) : 0;
+      fill.style.width = r * 100 + "%"; thumb.style.left = r * 100 + "%";
+      times[0].textContent = fmt(c); times[1].textContent = du ? fmt(du) : "--:--";
+      seek.setAttribute("aria-valuemax", String(Math.floor(du)));
+      seek.setAttribute("aria-valuenow", String(Math.floor(c)));
+      seek.setAttribute("aria-valuetext", fmt(c) + " of " + (du ? fmt(du) : "--:--"));
+    }
+    function sync() { if (pw !== w) return; syncInfo(); syncTime(); }
+
+    // Controls: the very buttons the bottom bar uses
+    function act(k) {
+      var Y = yt();
+      var map = Y ? { play: "ytPlay", prev: "ytPrev", next: "ytNext", shuffle: "ytShuffle" }
+                  : { play: "playBtn", prev: "prevBtn", next: "nextBtn", shuffle: "shuffleBtn", repeat: "repeatBtn" };
+      var el = map[k] && $(map[k]);
+      if (!el || el.disabled || (b[k] && b[k].disabled)) return;
+      el.click();
+      sync(); w.setTimeout(sync, 300);
+    }
+    root.addEventListener("click", function (e) { var x = e.target.closest("[data-k]"); if (x) act(x.getAttribute("data-k")); });
+
+    function seekTo(s) { var Y = yt(); if (Y) Y.seek(s); else if (P.current()) P.seek(s); w.setTimeout(syncTime, 120); }
+    function ratioAt(e) { var r = seek.getBoundingClientRect(); return r.width ? Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) : 0; }
+    seek.addEventListener("pointerdown", function (e) {
+      if (e.button > 0 || !du) return;
+      e.preventDefault();
+      drag = { r: ratioAt(e) }; seek.classList.add("is-dragging");
+      try { seek.setPointerCapture(e.pointerId); } catch (x) {}
+      syncTime();
+    });
+    seek.addEventListener("pointermove", function (e) { if (drag) { drag.r = ratioAt(e); syncTime(); } });
+    function endDrag(commit) {
+      if (!drag) return;
+      var r = drag.r; drag = null; seek.classList.remove("is-dragging");
+      if (commit && du) seekTo(r * du);
+      syncTime();
+    }
+    seek.addEventListener("pointerup", function (e) { if (drag) drag.r = ratioAt(e); endDrag(true); });
+    seek.addEventListener("pointercancel", function () { endDrag(false); });
+
+    // Keyboard in the mini window: Space play/pause, ←/→ previous/next, M closes
+    function onKey(e) {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === " " || e.code === "Space") { e.preventDefault(); if (!e.repeat) act("play"); }
+      else if (e.key === "ArrowLeft") { e.preventDefault(); act("prev"); }
+      else if (e.key === "ArrowRight") { e.preventDefault(); act("next"); }
+      else if (e.target === seek && (e.key === "Home" || e.key === "End")) { e.preventDefault(); if (du) seekTo(e.key === "Home" ? 0 : Math.max(0, du - 0.25)); }
+      else if ((e.key === "m" || e.key === "M") && !e.repeat) { e.preventDefault(); w.close(); }
+    }
+    function onKeyUp(e) { if (e.key === " " || e.code === "Space") e.preventDefault(); } // no second toggle from a focused button
+    d.addEventListener("keydown", onKey);
+    d.addEventListener("keyup", onKeyUp);
+
+    // Stay in sync: track, play/pause, cover and modes at once; time about 4 times a second
+    var audio = P.audio(), lastT = 0;
+    var evs = ["play", "pause", "playing", "waiting", "loadedmetadata", "durationchange", "emptied", "ended", "seeked"];
+    function onTime() { var n = Date.now(); if (n - lastT < 250) return; lastT = n; syncTime(); }
+    evs.forEach(function (ev) { audio.addEventListener(ev, sync); });
+    audio.addEventListener("timeupdate", onTime);
+    var mo = new MutationObserver(sync);
+    ["playBtn", "shuffleBtn", "repeatBtn", "prevBtn", "nextBtn", "title", "ytPlay", "ytShuffle"].forEach(function (id) {
+      var el = $(id); if (el) mo.observe(el, { attributes: true, childList: true, characterData: true, subtree: true });
+    });
+    mo.observe($("app"), { attributes: true, attributeFilter: ["class"] });
+    var iv = w.setInterval(function () { syncInfo(); if (yt() || drag) syncTime(); else onTime(); }, 250);
+
+    w.addEventListener("pagehide", function () {
+      try { w.clearInterval(iv); } catch (e) {}
+      evs.forEach(function (ev) { audio.removeEventListener(ev, sync); });
+      audio.removeEventListener("timeupdate", onTime);
+      mo.disconnect();
+      d.removeEventListener("keydown", onKey);
+      d.removeEventListener("keyup", onKeyUp);
+      if (pw === w) pw = null;
+      setActive(false);
+    }, { once: true });
+
+    setActive(true);
+    sync();
+  }
 })();
     </script>
     <script>
