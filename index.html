@@ -3608,7 +3608,7 @@
       .then(function (r) {
         if (r.status === 401 && !retried) return refresh().then(function () { return api(path, opts, true); });
         return readJSON(r).then(function (j) {
-          if (!r.ok) throw new Error(errText(j, "Request failed (" + r.status + ")."));
+          if (!r.ok) { var err = new Error(errText(j, "Request failed (" + r.status + ").")); err.status = r.status; err.body = j; throw err; }
           return j;
         });
       });
@@ -3806,7 +3806,7 @@
       setSession(j);
       if (!S.user) { S.user = { email: em }; persistSession(); }
       pass.value = ""; pass.type = "password"; $("authShow").textContent = "Show";
-      hideOverlay(); P.showView("home"); renderChip(); setCredit();
+      hideOverlay(); P.showView("home"); renderChip(); setCredit(); authChanged();
       return loadLibrary().then(loadPlaylists);
     }).catch(function (e2) {
       err.textContent = (e2 && e2.message) || "Couldn't sign in.";
@@ -3873,7 +3873,7 @@
     S = null; refreshing = null;
     P.stop();
     P.removeWhere(function (t) { return !!(t.fromCloud || t.cloudId); });
-    endQueue(); setCredit(); resetPlaylists();
+    endQueue(); setCredit(); resetPlaylists(); authChanged();
     setMode("in"); email.value = ""; pass.value = "";
     showOverlay();
   }
@@ -4667,6 +4667,48 @@
   }
 
   window.NeskaCloud = { needsSrc: needsSrc, resolve: resolve, save: save, saveCover: saveCover, trackPlayed: trackPlayed, saveLyrics: saveLyrics };
+
+  /* YouTube list: one JSON file, songs/<user_id>/youtube.json, used by the YouTube script */
+  function ytPath() { return S && S.access && S.user && S.user.id ? S.user.id + "/youtube.json" : null; }
+  function ytMissing(e) {
+    if (!e) return false;
+    var b = e.body || {}, s = [e.message, b.error, b.message, b.statusCode].join(" ");
+    return e.status === 404 || String(b.statusCode) === "404" || (e.status === 400 && /not.?found/i.test(s));
+  }
+  function ytRow(it) {
+    var a = +it.added || Date.now();
+    return { id: it.id, yt_id: it.id, kind: it.kind, title: it.title, thumb: it.thumb || "", added: new Date(a).toISOString() };
+  }
+  window.NeskaCloud.yt = {
+    uid: function () { return S && S.access ? (S.user && (S.user.id || S.user.email)) || "me" : null; },
+    // the saved array, or [] when the file doesn't exist yet
+    list: function () {
+      var p = ytPath();
+      if (!p) return Promise.reject(new Error("No account id"));
+      return sign(p).then(function (u) {
+        return fetch(u + (u.indexOf("?") < 0 ? "?" : "&") + "cb=" + Date.now(), { cache: "no-store" }).then(function (r) {
+          if (r.status === 400 || r.status === 404) return [];
+          if (!r.ok) throw new Error("Download failed (" + r.status + ")");
+          return r.text().then(function (t) {
+            if (!t || !t.trim()) return [];
+            var a = JSON.parse(t);
+            if (!Array.isArray(a)) throw new Error("Bad YouTube list");
+            return a;
+          });
+        });
+      }, function (e) {
+        if (ytMissing(e)) return [];
+        throw e;
+      });
+    },
+    // the whole list, replacing the file (touches no other object)
+    save: function (list) {
+      var p = ytPath();
+      if (!p) return Promise.reject(new Error("No account id"));
+      return api("/storage/v1/object/songs/" + encPath(p), { method: "POST", headers: { "x-upsert": "true" }, body: list.map(ytRow) });
+    }
+  };
+  function authChanged() { try { window.dispatchEvent(new Event("neska:auth")); } catch (e) {} }
   setMode("in");
   var saved = readSavedSession();
   if (!saved) showOverlay();
@@ -4676,7 +4718,7 @@
       if (S) return; // signed in some other way meanwhile
       S = { user: saved.user || null };
       setSession(j);
-      P.showView("home"); renderChip(); setCredit();
+      P.showView("home"); renderChip(); setCredit(); authChanged();
       return loadLibrary().then(loadPlaylists);
     }).catch(function () {
       if (S && S.access) return;
@@ -5011,6 +5053,98 @@
     try { localStorage.setItem(KEY, JSON.stringify(items)); } catch (e) { P.toast("Couldn't save on this device.", true); }
   }
 
+  /* ---------- Account sync (songs/<user_id>/youtube.json); localStorage stays the offline cache ---------- */
+  var MIG_KEY = "neska.yt.migrated", MIG_USER = "neska.yt.migrated.user";
+  var ver = 0, pulling = null;
+  function cloud() { var c = window.NeskaCloud && window.NeskaCloud.yt; return c && c.uid() ? c : null; }
+  function syncFail() { P.toast("Couldn't sync YouTube list", true); }
+  function migrated(uid) {
+    try { return localStorage.getItem(MIG_KEY) === "1" && localStorage.getItem(MIG_USER) === String(uid); } catch (e) { return true; }
+  }
+  function setMigrated(uid) {
+    try { localStorage.setItem(MIG_KEY, "1"); localStorage.setItem(MIG_USER, String(uid)); } catch (e) {}
+  }
+  function fromRow(r) {
+    var id = r && typeof (r.yt_id || r.id) === "string" ? r.yt_id || r.id : null;
+    if (!id || (r.kind !== "video" && r.kind !== "playlist")) return null;
+    var a = typeof r.added === "number" ? r.added : Date.parse(r.added);
+    return { id: id, kind: r.kind, title: r.title || (r.kind === "video" ? "YouTube video" : "YouTube playlist"), thumb: r.thumb || "", added: a || Date.now() };
+  }
+  function keyOf(it) { return it.kind + ":" + it.id; }
+  var stamp = 0;
+  function mark(it) { it.pending = Math.max(Date.now(), stamp + 1); stamp = it.pending; } // not on the server yet
+  // upload the whole current list; saves run one at a time, each with the list as it is then
+  var chain = Promise.resolve();
+  function push(onOk) {
+    var c = cloud(); if (!c) return chain;
+    var uid = c.uid();
+    chain = chain.then(function () {
+      if (cloud() !== c || c.uid() !== uid) return;
+      var snap = items.slice(), sent = snap.map(function (it) { return it.pending; });
+      return c.save(snap).then(function () {
+        snap.forEach(function (it, i) { if (it.pending && it.pending === sent[i]) delete it.pending; });
+        store();
+        if (onOk) onOk();
+      }, function () { store(); syncFail(); }); // items stay pending for the next load
+    });
+    return chain;
+  }
+  function find(it) {
+    for (var i = 0; i < items.length; i++) if (items[i].id === it.id && items[i].kind === it.kind) return items[i];
+    return null;
+  }
+  function apply(next) {
+    closeMenu(false);
+    items = next; store(); render();
+    if (cur) { var c = find(cur); if (c) $("ytTitle").textContent = c.title; }
+  }
+  // load the list from the server; first after sign-in, also uploads this device's items once
+  function pull() {
+    var c = cloud(); if (!c) return Promise.resolve();
+    if (pulling) return pulling;
+    var uid = c.uid(), v = ver;
+    // wait for saves in flight, so the download isn't older than this device's last change
+    pulling = chain.then(function () {
+      v = ver;
+      return c.list();
+    }).then(function (rows) {
+      pulling = null;
+      if (cloud() !== c || c.uid() !== uid || ver !== v) return; // signed out, or changed meanwhile
+      // the server list is the truth; keep this device's pending items (and all of them, once, on migration)
+      var mig = !migrated(uid), next = [], at = {}, up = false;
+      (Array.isArray(rows) ? rows : []).forEach(function (r) {
+        var it = fromRow(r); if (!it || at[keyOf(it)] != null) return;
+        at[keyOf(it)] = next.length; next.push(it);
+      });
+      items.forEach(function (it) {
+        delete it.adding; delete it.rid;
+        if (!it.pending && !mig) return;
+        var k = keyOf(it);
+        if (at[k] == null) { if (!it.pending) mark(it); at[k] = next.length; next.push(it); up = true; }
+        else if (it.pending) { next[at[k]] = it; up = true; } // a rename not saved yet
+      });
+      apply(next);
+      if (up) push(function () { if (mig) setMigrated(uid); });
+      else if (mig) setMigrated(uid);
+    }, function () {
+      pulling = null;
+      syncFail();
+    });
+    return pulling;
+  }
+  function pushAdd(it) { mark(it); store(); push(); }
+  function pushRename(it) { mark(it); store(); push(); }
+  function pushRemove() { push(); }
+  window.addEventListener("neska:auth", function () {
+    ver++;
+    if (cloud()) { pull(); return; }
+    // signed out: the list goes back to this device only
+    items.forEach(function (it) { delete it.rid; delete it.pending; delete it.adding; });
+    store();
+  });
+  if ($("tab-pl")) $("tab-pl").addEventListener("click", function () { pull(); });
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") pull(); });
+
   /* ---------- Links ---------- */
   var LIST_ID = /^[\w-]{2,64}$/, VID = /^[\w-]{11}$/;
   function parse(raw) {
@@ -5126,7 +5260,8 @@
     if (mode === "rename") {
       if (!val) { $("ytErr").textContent = "Give it a name."; input.focus(); return; }
       var it = renameIt;
-      if (it) { it.title = val; store(); render(); if (cur && cur.id === it.id) $("ytTitle").textContent = val; }
+      if (it) it = find(it) || it;
+      if (it) { ver++; it.title = val; store(); render(); if (cur && cur.id === it.id) $("ytTitle").textContent = val; pushRename(it); }
       closeDlg(); P.toast("Renamed.");
       return;
     }
@@ -5146,7 +5281,8 @@
     }).then(function (meta) {
       busy = false;
       var it = { id: p.id, kind: p.kind, title: meta.title, thumb: meta.thumb, added: Date.now() };
-      items.push(it); store(); render();
+      if (find(it)) { closeDlg(); P.toast("Already in your YouTube list."); return; }
+      ver++; items.push(it); pushAdd(it); store(); render();
       closeDlg(); P.toast("Added " + it.title + ".");
     });
   });
@@ -5216,8 +5352,9 @@
     if (act === "rename") openDlg("rename", it, btn);
     else if (act === "open") window.open(ytUrl(it), "_blank", "noopener");
     else if (act === "remove") {
+      it = find(it) || it;
       var i = items.indexOf(it); if (i > -1) items.splice(i, 1);
-      store();
+      ver++; store(); pushRemove(it);
       if (cur && cur.id === it.id && cur.kind === it.kind) closeYT(true);
       render(); P.toast("Removed " + it.title + ".");
       try { $("ytAdd").focus({ preventScroll: true }); } catch (e2) {}
