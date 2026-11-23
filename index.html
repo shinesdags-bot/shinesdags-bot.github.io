@@ -962,6 +962,48 @@
       @media (min-width: 900px) and (prefers-reduced-motion: reduce) {
         .x-side__brand .x-brand__name, .x-side__brand .x-brand__badge { animation: none; }
       }
+
+      /* ===== 3D rose-gold player controls (visual only; sizes unchanged) ===== */
+      .x-ctl.x-3d.x-3d.x-3d { transition: transform 90ms ease, box-shadow 90ms ease, filter 90ms ease, color 90ms ease; }
+      /* Play/pause: domed, polished rose-gold coin */
+      .x-play.x-3d.x-3d.x-3d {
+        background: radial-gradient(circle at 32% 26%, #fbe3d6 0%, #f0c3b2 20%, #d99a8a 55%, #b97470 80%, #8a4b4a 100%);
+        color: #3b1230;
+        box-shadow: inset 0 2px 1px rgba(255, 255, 255, 0.55), inset 0 -3px 6px rgba(60, 10, 30, 0.45), 0 0 0 2px rgba(120, 60, 60, 0.6), 0 8px 18px rgba(20, 0, 15, 0.55), 0 0 28px rgba(232, 196, 168, 0.35);
+      }
+      .x-app.is-playing .x-play.x-3d.x-3d.x-3d {
+        box-shadow: inset 0 2px 1px rgba(255, 255, 255, 0.55), inset 0 -3px 6px rgba(60, 10, 30, 0.45), 0 0 0 2px rgba(120, 60, 60, 0.6), 0 8px 18px rgba(20, 0, 15, 0.55), 0 0 40px rgba(232, 196, 168, 0.5);
+      }
+      .x-play.x-3d.x-3d.x-3d svg { filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.35)); }
+      /* Prev / next / shuffle / repeat: raised plum enamel with a rose-gold rim */
+      .x-ctl.x-3d.x-3d.x-3d:not(.x-play) {
+        background: linear-gradient(160deg, #6a2a55, #2a0b22) padding-box, linear-gradient(160deg, #f7e1cf 0%, #d99a8a 45%, #8a4b4a 100%) border-box;
+        border: 1.5px solid transparent;
+        color: #f0c6b0;
+        filter: none;
+        box-shadow: inset 0 1px 1px rgba(255, 220, 230, 0.28), inset 0 -2px 4px rgba(10, 0, 8, 0.55), 0 3px 6px rgba(20, 0, 15, 0.5);
+      }
+      .x-ctl.x-3d.x-3d.x-3d:not(.x-play) svg { filter: drop-shadow(0 -0.5px 0 rgba(255, 245, 236, 0.55)) drop-shadow(0 1px 0 rgba(20, 0, 15, 0.6)); }
+      .x-ctl--mode.x-3d.x-3d.x-3d:not(.x-play) { color: #d9a99a; }
+      .x-ctl--mode.x-3d.x-3d.x-3d:not(.x-play):is([aria-pressed="true"], [data-mode="all"], [data-mode="one"]) {
+        background: linear-gradient(160deg, #6a2a55, #2a0b22) padding-box, linear-gradient(160deg, #fff1e8 0%, #f0b9a6 45%, #c07a72 100%) border-box;
+        color: #fbe3d6;
+        box-shadow: inset 0 1px 1px rgba(255, 220, 230, 0.3), inset 0 -2px 4px rgba(10, 0, 8, 0.55), 0 3px 6px rgba(20, 0, 15, 0.5), 0 0 0 1px rgba(247, 225, 207, 0.25), 0 0 12px rgba(232, 196, 168, 0.55);
+      }
+      /* Pressed: pushed in */
+      .x-ctl.x-ctl.x-3d.x-3d.x-3d:not(:disabled):is(:active, .is-pressed) { transform: translateY(2px); }
+      .x-play.x-play.x-3d.x-3d.x-3d:not(:disabled):is(:active, .is-pressed) {
+        box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.4), inset 0 -1px 3px rgba(60, 10, 30, 0.4), inset 0 3px 8px rgba(60, 10, 30, 0.4), 0 0 0 2px rgba(120, 60, 60, 0.6), 0 3px 6px rgba(20, 0, 15, 0.5), 0 0 20px rgba(232, 196, 168, 0.3);
+      }
+      .x-ctl.x-ctl.x-3d.x-3d.x-3d:not(.x-play):not(:disabled):is(:active, .is-pressed) {
+        box-shadow: inset 0 1px 1px rgba(255, 220, 230, 0.12), inset 0 2px 6px rgba(10, 0, 8, 0.7), 0 1px 2px rgba(20, 0, 15, 0.5);
+      }
+      @media (hover: hover) {
+        .x-ctl.x-ctl.x-3d.x-3d.x-3d:not(:disabled):hover { filter: brightness(1.1); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .x-ctl.x-ctl.x-3d.x-3d.x-3d, .x-ctl.x-ctl.x-3d.x-3d.x-3d:not(:disabled):is(:active, .is-pressed) { transform: none; }
+      }
     </style>
       <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png" />
@@ -1029,21 +1071,21 @@
               </div>
 
               <div class="x-controls">
-                <button class="x-ctl x-ctl--mode" id="shuffleBtn" type="button" aria-label="Shuffle" aria-pressed="false">
+                <button class="x-ctl x-ctl--mode x-3d" id="shuffleBtn" type="button" aria-label="Shuffle" aria-pressed="false">
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="m15 15 6 6"/><path d="m4 4 5 5"/></svg>
                 </button>
-                <button class="x-ctl" id="prevBtn" type="button" aria-label="Previous">
+                <button class="x-ctl x-3d" id="prevBtn" type="button" aria-label="Previous">
                   <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="5" y="5" width="2.4" height="14" rx="1"/><path d="M19 6.2v11.6a1 1 0 0 1-1.55.83L9.2 12.83a1 1 0 0 1 0-1.66l8.25-5.8A1 1 0 0 1 19 6.2z"/></svg>
                 </button>
-                <button class="x-ctl x-play" id="playBtn" type="button" aria-label="Play">
+                <button class="x-ctl x-play x-3d" id="playBtn" type="button" aria-label="Play">
                   <span class="x-spin" aria-hidden="true"></span>
                   <svg class="x-i-play" width="32" height="32" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.6v12.8a1 1 0 0 0 1.53.85l10.2-6.4a1 1 0 0 0 0-1.7L9.53 4.75A1 1 0 0 0 8 5.6z"/></svg>
                   <svg class="x-i-pause" width="32" height="32" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4.2" height="14" rx="1.2"/><rect x="13.8" y="5" width="4.2" height="14" rx="1.2"/></svg>
                 </button>
-                <button class="x-ctl" id="nextBtn" type="button" aria-label="Next">
+                <button class="x-ctl x-3d" id="nextBtn" type="button" aria-label="Next">
                   <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="16.6" y="5" width="2.4" height="14" rx="1"/><path d="M5 6.2v11.6a1 1 0 0 0 1.55.83l8.25-5.8a1 1 0 0 0 0-1.66L6.55 5.37A1 1 0 0 0 5 6.2z"/></svg>
                 </button>
-                <button class="x-ctl x-ctl--mode" id="repeatBtn" type="button" aria-label="Repeat: off" data-mode="off">
+                <button class="x-ctl x-ctl--mode x-3d" id="repeatBtn" type="button" aria-label="Repeat: off" data-mode="off">
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>
                   <span class="x-one" aria-hidden="true">1</span>
                 </button>
@@ -1178,17 +1220,17 @@
                 </div>
                 <div class="x-yt-frame"><div id="ytHost"></div></div>
                 <div class="x-yt-ctls">
-                  <button class="x-ctl" type="button" id="ytPrev" aria-label="Previous video">
+                  <button class="x-ctl x-3d" type="button" id="ytPrev" aria-label="Previous video">
                     <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="5" y="5" width="2.4" height="14" rx="1"/><path d="M19 6.2v11.6a1 1 0 0 1-1.55.83l-8.25-5.8a1 1 0 0 1 0-1.66l8.25-5.8A1 1 0 0 1 19 6.2z"/></svg>
                   </button>
-                  <button class="x-ctl x-play" type="button" id="ytPlay" aria-label="Play">
+                  <button class="x-ctl x-play x-3d" type="button" id="ytPlay" aria-label="Play">
                     <svg class="x-i-play" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.6v12.8a1 1 0 0 0 1.53.85l10.2-6.4a1 1 0 0 0 0-1.7L9.53 4.75A1 1 0 0 0 8 5.6z"/></svg>
                     <svg class="x-i-pause" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4.2" height="14" rx="1.2"/><rect x="13.8" y="5" width="4.2" height="14" rx="1.2"/></svg>
                   </button>
-                  <button class="x-ctl" type="button" id="ytNext" aria-label="Next video">
+                  <button class="x-ctl x-3d" type="button" id="ytNext" aria-label="Next video">
                     <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="16.6" y="5" width="2.4" height="14" rx="1"/><path d="M5 6.2v11.6a1 1 0 0 0 1.55.83l8.25-5.8a1 1 0 0 0 0-1.66L6.55 5.37A1 1 0 0 0 5 6.2z"/></svg>
                   </button>
-                  <button class="x-ctl x-ctl--mode" type="button" id="ytShuffle" aria-pressed="false" aria-label="Shuffle: off">
+                  <button class="x-ctl x-ctl--mode x-3d" type="button" id="ytShuffle" aria-pressed="false" aria-label="Shuffle: off">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="m15 15 6 6"/><path d="m4 4 5 5"/></svg>
                   </button>
                 </div>
@@ -1236,12 +1278,12 @@
               <canvas id="miniCanvas" width="96" height="96" aria-hidden="true"></canvas>
               <span class="x-next__txt"><span class="x-next__title" id="miniTitle"></span><span class="x-next__label" id="miniArtist"></span></span>
             </button>
-            <button class="x-ctl x-play" id="miniPlay" type="button" aria-label="Play">
+            <button class="x-ctl x-play x-3d" id="miniPlay" type="button" aria-label="Play">
               <span class="x-spin" aria-hidden="true"></span>
               <svg class="x-i-play" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.6v12.8a1 1 0 0 0 1.53.85l10.2-6.4a1 1 0 0 0 0-1.7L9.53 4.75A1 1 0 0 0 8 5.6z"/></svg>
               <svg class="x-i-pause" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4.2" height="14" rx="1.2"/><rect x="13.8" y="5" width="4.2" height="14" rx="1.2"/></svg>
             </button>
-            <button class="x-ctl x-ctl--sm" id="miniNext" type="button" aria-label="Next">
+            <button class="x-ctl x-ctl--sm x-3d" id="miniNext" type="button" aria-label="Next">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="16.6" y="5" width="2.4" height="14" rx="1"/><path d="M5 6.2v11.6a1 1 0 0 0 1.55.83l8.25-5.8a1 1 0 0 0 0-1.66L6.55 5.37A1 1 0 0 0 5 6.2z"/></svg>
             </button>
           </div>
@@ -5549,6 +5591,28 @@
   });
 
   render();
+})();
+    </script>
+    <script>
+(function () {
+  // Visual only: mirror :active with .is-pressed on the 3D player controls
+  function btnOf(t) { return t && t.closest ? t.closest(".x-3d") : null; }
+  function releaseAll() {
+    var list = document.querySelectorAll(".x-3d.is-pressed");
+    for (var i = 0; i < list.length; i++) list[i].classList.remove("is-pressed");
+  }
+  document.addEventListener("pointerdown", function (e) {
+    var b = btnOf(e.target);
+    if (!b || b.disabled || e.button > 0) return;
+    b.classList.add("is-pressed");
+  }, { capture: true, passive: true });
+  document.addEventListener("pointerup", releaseAll, { capture: true, passive: true });
+  document.addEventListener("pointercancel", releaseAll, { capture: true, passive: true });
+  document.addEventListener("pointerout", function (e) {
+    var b = btnOf(e.target);
+    if (b && b.classList.contains("is-pressed") && !b.contains(e.relatedTarget)) b.classList.remove("is-pressed");
+  }, { capture: true, passive: true });
+  window.addEventListener("blur", releaseAll);
 })();
     </script>
     <script>
