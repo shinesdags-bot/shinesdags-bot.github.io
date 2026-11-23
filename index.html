@@ -1496,7 +1496,7 @@
 
         <input class="x-file" type="file" id="fileInput" multiple tabindex="-1" aria-hidden="true"
           accept=".mp3,.m4a,.aac,.wav,.aif,.aiff,.caf,.flac,.ogg,.opus,audio/mpeg,audio/mp4,audio/x-m4a,audio/aac,audio/wav,audio/x-wav" />
-        <audio id="audio" preload="metadata" crossorigin="anonymous"></audio>
+        <audio id="audio" preload="auto" crossorigin="anonymous"></audio>
       </div>
     </div>
     <script src="hark.js"></script>
@@ -1506,7 +1506,38 @@
   var $ = function (id) { return document.getElementById(id); };
   var app = $("app"), audio = $("audio"); // the one <audio> element that plays every song
   audio.crossOrigin = "anonymous"; // before any src, so Studio sound can route it later
+  audio.preload = "auto"; // the element that plays buffers ahead, so the first tap starts sooner
   function onAudio(ev, fn) { audio.addEventListener(ev, fn); }
+
+  /* ---------- Background work queue ----------
+     Covers, quality reads and syncs wait until the song asked for is playing, or until
+     6 s pass with no playback request; then at most 2 run at a time. Each new play
+     request closes the gate again until that song plays. */
+  var BG = (function () {
+    var q = [], running = 0, MAX = 2, isOpen = false, asking = false, timer = null;
+    function pump() {
+      while (isOpen && running < MAX && q.length) {
+        var job = q.shift(), p = null;
+        running++;
+        try { p = job(); } catch (e) { p = null; }
+        Promise.resolve(p).then(done, done);
+      }
+    }
+    function done() { running--; pump(); }
+    function arm() {
+      clearTimeout(timer);
+      timer = setTimeout(function () { if (!asking) { isOpen = true; pump(); } }, 6000);
+    }
+    arm();
+    return {
+      run: function (fn, first) { if (first) q.unshift(fn); else q.push(fn); pump(); },
+      hold: function () { asking = true; isOpen = false; clearTimeout(timer); },
+      open: function () { asking = false; clearTimeout(timer); isOpen = true; pump(); },
+      release: function () { if (!asking) return; asking = false; arm(); },
+      isOpen: function () { return isOpen; }
+    };
+  })();
+  window.NeskaBG = BG;
   var reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
 
   /* ---------- Tracks ---------- */
@@ -1801,12 +1832,60 @@
     if (heard >= 30) countPlay();
   });
 
+  /* ---------- Stall watchdog ----------
+     20 s of loading: one toast per song. Stuck 15 s after stalled/waiting: reload the same
+     src at the same time once, spinner kept. */
+  var slowTimer = null, slowTold = false, stuckTimer = null, stuckDone = false, stuckAt = -1;
+  function slowArm() {
+    if (slowTold || slowTimer) return;
+    var t = tracks[cur];
+    slowTimer = setTimeout(function () {
+      slowTimer = null;
+      if (slowTold || tracks[cur] !== t || !wantsPlay || (br && br.live) || (pm && pm.swapping)) return;
+      if (!audio.paused && audio.readyState >= 3) return;
+      slowTold = true;
+      toast("Still loading — this song file is large. MP3 or AAC files start faster.");
+    }, 20000);
+  }
+  function stuckArm() {
+    if (stuckDone || stuckTimer || !wantsPlay || pm || br) return;
+    var t = tracks[cur], src = audio.getAttribute("src");
+    if (!src) return;
+    stuckAt = audio.currentTime || 0;
+    stuckTimer = setTimeout(function () {
+      stuckTimer = null;
+      if (stuckDone || tracks[cur] !== t || audio.getAttribute("src") !== src || !wantsPlay || pm || br) return;
+      if (!audio.paused && audio.readyState >= 3 && (audio.currentTime || 0) > stuckAt + 0.5) return; // it moved on
+      stuckDone = true;
+      var at = audio.currentTime || 0;
+      setLoading(true);
+      try { audio.load(); } catch (e) {}
+      applyRate();
+      if (at > 0) brSeekEl(at);
+      start();
+    }, 15000);
+  }
+  function watchClear(all) {
+    clearTimeout(slowTimer); slowTimer = null;
+    clearTimeout(stuckTimer); stuckTimer = null;
+    if (all) { slowTold = false; stuckDone = false; }
+  }
+  /* after a song starts: sign the next one's URL (no download), so a skip starts at once */
+  function preResolveNext() {
+    var cloud = window.NeskaCloud; if (!cloud) return;
+    var n = peekIndex(), nt = n > -1 ? tracks[n] : null;
+    if (nt && nt !== tracks[cur] && cloud.needsSrc(nt)) { try { Promise.resolve(cloud.resolve(nt)).catch(function () {}); } catch (e) {} }
+  }
+
   function load(index, play) {
     brStop(); pmCancelJob(); pmExit(); // any normal load leaves the pre-mix
     cur = index;
     var t = tracks[cur];
     seeking = false;
     resetPlay();
+    watchClear(true);
+    if (play) { BG.hold(); slowArm(); }
+    if (audio.preload !== "auto") audio.preload = "auto";
     if (t && played.indexOf(t) < 0) played.push(t);
     var cloud = window.NeskaCloud;
     if (cloud && cloud.needsSrc(t)) {
@@ -1836,19 +1915,20 @@
   }
   function start() {
     if (!tracks.length) return;
+    if (audio.paused) { BG.hold(); slowArm(); }
     if (tracks[cur] && tracks[cur].pending) { wantsPlay = true; setLoading(true); syncPlaying(); return; }
     wantsPlay = true;
     if (audio.readyState < 3) setLoading(true);
     var pr;
     engResume();
-    try { pr = audio.play(); } catch (e) { pr = null; wantsPlay = false; setLoading(false); syncPlaying(); }
+    try { pr = audio.play(); } catch (e) { pr = null; wantsPlay = false; setLoading(false); syncPlaying(); BG.release(); }
     if (pr && pr.catch) pr.catch(function (err) {
-      if (err && err.name === "NotAllowedError") { wantsPlay = false; setLoading(false); syncPlaying(); toast("Tap play to start."); }
+      if (err && err.name === "NotAllowedError") { wantsPlay = false; setLoading(false); syncPlaying(); BG.release(); toast("Tap play to start."); }
       else if (err && err.name === "AbortError") { /* a newer load replaced this one */ }
       // other failures surface through the audio "error" event
     });
   }
-  function pause() { brCancel(false); wantsPlay = false; audio.pause(); setLoading(false); syncPlaying(); }
+  function pause() { brCancel(false); wantsPlay = false; audio.pause(); setLoading(false); syncPlaying(); watchClear(false); BG.release(); }
   function isPlaying() { return !!(br && br.live) || !!(pm && pm.swapping && wantsPlay) || (!audio.paused && !audio.ended); }
   function toggle() { if (!tracks.length) return; if (!isPlaying()) { brUnlock(); start(); } else pause(); }
 
@@ -1879,7 +1959,7 @@
     else if (fading) { swipeDir = ""; load(cur, play); }
     else seekTo(0);
   }
-  function stopAtEnd() { wantsPlay = false; setLoading(false); syncPlaying(); }
+  function stopAtEnd() { wantsPlay = false; setLoading(false); syncPlaying(); watchClear(false); BG.release(); }
   function playTrack(index) {
     brUnlock();
     if (index === cur) brCancel(true); else brStop();
@@ -2059,7 +2139,20 @@
         qPaint(t); qRow(t);
       }).then(null, function () { c.busy = false; c.done = true; c.info = c.info || {}; });
     };
-    if (window.requestIdleCallback) requestIdleCallback(go, { timeout: 1500 }); else setTimeout(go, 300); // after the song's own load
+    // The current song, while playback is asked for: 3 s after it starts playing. Otherwise: the background queue.
+    if (tracks[cur] === t && wantsPlay) { qWaitSet({ t: t, go: go }); qKick(); }
+    else BG.run(go);
+  }
+  var qWait = null; // { t, go } waiting for its song to play 3 s
+  function qWaitSet(w) {
+    var old = qWait; qWait = w;
+    if (old && old.t !== (w && w.t)) BG.run(old.go); // no longer current: a background read
+  }
+  function qKick() {
+    var w = qWait; if (!w) return;
+    if (tracks[cur] !== w.t) { qWaitSet(null); return; }
+    if (!wantsPlay) { qWait = null; BG.run(w.go); return; }
+    if (heard >= 3 && !audio.paused) { qWait = null; w.go(); }
   }
   function qRow(t) { // the desktop table's tag, if parsing named a truer format (ALAC, OPUS)
     var i = tracks.indexOf(t), li = $("list") && $("list").children[i], fm = li && li.querySelector(".x-row__fmt");
@@ -2360,13 +2453,16 @@
   });
   // while a crossfade's buffers are audible, the element loading in the background is not a wait
   onAudio("loadstart", function () { if (wantsPlay && !(br && br.live) && !(pm && pm.swapping)) setLoading(true); }); // a mix swap is not a wait
-  onAudio("waiting", function () { if (wantsPlay && !(br && br.live) && !(pm && pm.swapping)) setLoading(true); });
-  onAudio("stalled", function () { if (wantsPlay && audio.readyState < 3 && !(br && br.live)) setLoading(true); });
+  onAudio("waiting", function () { if (wantsPlay && !(br && br.live) && !(pm && pm.swapping)) { setLoading(true); slowArm(); stuckArm(); } });
+  onAudio("stalled", function () { if (wantsPlay && audio.readyState < 3 && !(br && br.live)) { setLoading(true); slowArm(); stuckArm(); } });
   onAudio("canplay", function () { if (audio.paused && !wantsPlay) setLoading(false); });
-  onAudio("playing", function () { setLoading(false); errorStreak = 0; if (tracks[cur]) tracks[cur].cloudRetried = false; syncPlaying(); });
+  onAudio("playing", function () {
+    setLoading(false); errorStreak = 0; if (tracks[cur]) tracks[cur].cloudRetried = false; syncPlaying();
+    watchClear(false); BG.open(); preResolveNext();
+  });
   onAudio("play", syncPlaying);
-  onAudio("pause", function () { syncPlaying(); });
-  onAudio("timeupdate", function () { if (pm) { pmTrack(); pmRoll(); } else pmMaybe(); if (!seeking) updateTime(); throttlePosition(); brCheck(); });
+  onAudio("pause", function () { syncPlaying(); qKick(); });
+  onAudio("timeupdate", function () { if (pm) { pmTrack(); pmRoll(); } else pmMaybe(); if (!seeking) updateTime(); throttlePosition(); brCheck(); qKick(); });
   onAudio("progress", function () { if (!seeking) updateTime(); });
   onAudio("ended", function () {
     if (br) return; // the crossfade finishes this track itself
@@ -2413,7 +2509,7 @@
       swipeDir = "left";
       if (pos < order.length - 1) goTo(pos + 1, true); else goTo(0, true);
     } else {
-      wantsPlay = false; syncPlaying();
+      wantsPlay = false; syncPlaying(); watchClear(false); BG.release();
     }
   }
 
@@ -2741,6 +2837,7 @@
     // times here are wall-clock: song time divided by the speed
     var t = tracks[cur], d = audio.duration, rem = (d - (audio.currentTime || 0)) / rate, src = audio.getAttribute("src");
     if (!t || !src || !isFinite(d) || d / rate < 2 * xfSec || rem > xfSec + 25) return;
+    if (!prep && heard < 20) return; // a fresh start gets the network to itself for its first 20 s of play
     var nx = brPick(); if (!nx) return;
     var due = rem <= xfSec && rem >= 1;
     var key = t.id + ">" + nx.t.id + ">" + xfSec + ">" + rate;
@@ -3164,6 +3261,7 @@
   }
   function pmPrepare() {
     if (!pmOn || !(xfSec > 0) || pm || PM.busy || pmJob || br || !wantsPlay || audio.paused || rate !== 1) return;
+    if (heard < 20) return; // not before the song has played 20 s
     if (!document.hidden) pmBgOnce = false;
     else if (!pmBgOnce) return; // in the background only right after a mix ran out there
     var t = tracks[cur], d = audio.duration, src = audio.getAttribute("src");
@@ -3673,7 +3771,32 @@
     });
   }
   function needsSrc(t) { return !!(S && t && t.cloudId && t.path && !t.blob && (!t.src || Date.now() > (t.srcExp || 0))); }
+  function absURL(u) { return /^http/i.test(u) ? u : SB_URL + "/storage/v1" + (u.charAt(0) === "/" ? "" : "/") + u; }
+  /* one request signs up to 100 songs; a song the batch misses falls back to resolve() */
+  function signBatch(list) {
+    list = list.filter(function (t) { return needsSrc(t) && !t._signing && !t._batch; });
+    for (var i = 0; i < list.length; i += 100) (function (chunk) {
+      var job = api("/storage/v1/object/sign/songs", { method: "POST", body: { expiresIn: URL_TTL, paths: chunk.map(function (t) { return t.path; }) } }).then(function (rows) {
+        var by = {}, exp = Date.now() + (URL_TTL - 300) * 1000;
+        (Array.isArray(rows) ? rows : []).forEach(function (r) {
+          var u = r && !r.error && (r.signedURL || r.signedUrl);
+          if (u && r.path) by[r.path] = absURL(u);
+        });
+        chunk.forEach(function (t) { if (by[t.path] && needsSrc(t)) { t.src = by[t.path]; t.srcExp = exp; } });
+      }).catch(function () {}).then(function () {
+        chunk.forEach(function (t) { if (t._batch === job) t._batch = null; });
+      });
+      chunk.forEach(function (t) { t._batch = job; });
+    })(list.slice(i, i + 100));
+  }
   function resolve(t) {
+    if (t._signing) return t._signing;
+    if (t._batch) { // the batch is already on its way: wait for it, then sign alone only if it missed
+      return t._batch.then(function () { return needsSrc(t) ? resolveOne(t) : t.src; });
+    }
+    return resolveOne(t);
+  }
+  function resolveOne(t) {
     if (t._signing) return t._signing;
     t._signing = sign(t.path)
       .then(function (u) {
@@ -3683,6 +3806,34 @@
         return t.src;
       }, function (e) { t._signing = null; throw e; });
     return t._signing;
+  }
+
+  /* covers wait in the background queue (after the song plays, or 6 s idle; 2 at a time),
+     the current song and rows on screen first */
+  function onScreen(t) {
+    if (P.current() === t) return true;
+    var vh = window.innerHeight || 800, i = P.tracks().indexOf(t), list = $("list");
+    var els = [].slice.call(document.querySelectorAll('canvas[data-tid="' + t.id + '"]'));
+    if (list && list.children[i]) els.push(list.children[i]);
+    return els.some(function (el) {
+      if (!el.getClientRects().length) return false;
+      var b = el.getBoundingClientRect();
+      return b.bottom > 0 && b.top < vh && b.width > 0;
+    });
+  }
+  function queueCovers(list) {
+    var BG = window.NeskaBG;
+    var jobs = list.map(function (t) {
+      var path = t.coverPath;
+      return { t: t, run: function () {
+        if (!S || t.removed || t.coverPath !== path || t.coverImg) return null;
+        return sign(path).then(function (u) { return P.applyCover(t, u); }).catch(function () {});
+      } };
+    });
+    if (!BG) { jobs.forEach(function (j) { j.run(); }); return; }
+    var first = jobs.filter(function (j) { return onScreen(j.t); }), rest = jobs.filter(function (j) { return first.indexOf(j) < 0; });
+    rest.forEach(function (j) { BG.run(j.run); });
+    first.reverse().forEach(function (j) { BG.run(j.run, true); });
   }
 
   function loadLibrary() {
@@ -3700,13 +3851,12 @@
         t.lastPlayed = Date.parse(r.last_played_at) || 0;
         t.playCount = +r.play_count || 0;
         t.lyrics = typeof r.lyrics === "string" && r.lyrics.trim() ? r.lyrics : null;
-        if (r.cover_path) {
-          t.coverPath = r.cover_path;
-          sign(r.cover_path).then(function (u) { return P.applyCover(t, u); }).catch(function () {});
-        }
+        if (r.cover_path) t.coverPath = r.cover_path; // signed and loaded later, by the background queue
         return t;
       });
+      signBatch(fresh); // every song URL in one round trip, before anything can ask for one
       P.addTracks(fresh);
+      queueCovers(fresh.filter(function (t) { return t.coverPath; }));
       if (rows.length) P.toast(rows.length === 1 ? "1 song from your account" : rows.length + " songs from your account");
     }).catch(function (e) {
       if (S) P.toast("Couldn't load your songs. " + (e && e.message ? e.message : ""), true);
@@ -4845,7 +4995,10 @@
     if (cache.has(t)) return Promise.resolve(cache.get(t));
     if (t.lyrics && String(t.lyrics).trim()) { var saved = { text: t.lyrics, src: "saved" }; cache.set(t, saved); return Promise.resolve(saved); }
     if (pending.has(t)) return pending.get(t);
-    var job = fetchOnline(t).then(function (text) {
+    var BG = window.NeskaBG, online = P.current() === t || !BG ? fetchOnline(t) : new Promise(function (ok, no) { // other songs: background queue
+      BG.run(function () { var p; try { p = Promise.resolve(fetchOnline(t)); } catch (e) { p = Promise.reject(e); } p.then(ok, no); return p; });
+    });
+    var job = online.then(function (text) {
       var res = text ? { text: text, src: "lrclib" } : { text: null, src: "none" };
       cache.set(t, res); pending.delete(t);
       if (text) {
@@ -5177,15 +5330,17 @@
   function pushAdd(it) { mark(it); store(); push(); }
   function pushRename(it) { mark(it); store(); push(); }
   function pushRemove() { push(); }
+  // the server sync waits in the background queue, so it never competes with a song starting
+  function pullLater() { if (window.NeskaBG) window.NeskaBG.run(function () { return pull(); }); else pull(); }
   window.addEventListener("neska:auth", function () {
     ver++;
-    if (cloud()) { pull(); return; }
+    if (cloud()) { pullLater(); return; }
     // signed out: the list goes back to this device only
     items.forEach(function (it) { delete it.rid; delete it.pending; delete it.adding; });
     store();
   });
   if ($("tab-pl")) $("tab-pl").addEventListener("click", function () { pull(); });
-  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") pull(); });
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") pullLater(); });
 
   /* ---------- Links ---------- */
   var LIST_ID = /^[\w-]{2,64}$/, VID = /^[\w-]{11}$/;
