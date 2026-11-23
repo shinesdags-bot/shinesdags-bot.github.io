@@ -1,0 +1,23 @@
+  <script>
+  (function(){
+    if(!("serviceWorker" in navigator)) return;
+    var hadCtrl = !!navigator.serviceWorker.controller, shown = false;
+    function banner(){
+      if(shown) return; shown = true;
+      var b = document.createElement("button");
+      b.type = "button";
+      b.textContent = "New version of Neska \u2014 tap to refresh";
+      b.setAttribute("aria-live","polite");
+      b.style.cssText = "position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom));z-index:99999;padding:12px 18px;min-height:44px;border-radius:999px;border:1px solid rgba(232,180,160,.55);background:#3b1230;color:#fbeee6;font:600 14px/1.2 system-ui,-apple-system,sans-serif;box-shadow:0 8px 30px rgba(0,0,0,.45),0 0 18px rgba(232,160,150,.35);cursor:pointer";
+      b.onclick = function(){ location.reload(); };
+      document.body.appendChild(b);
+    }
+    navigator.serviceWorker.addEventListener("controllerchange", function(){ if(hadCtrl) banner(); hadCtrl = true; });
+    window.addEventListener("load", function(){
+      navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then(function(reg){
+        document.addEventListener("visibilitychange", function(){ if(document.visibilityState === "visible") reg.update().catch(function(){}); });
+        setInterval(function(){ reg.update().catch(function(){}); }, 30*60*1000);
+      }).catch(function(){});
+    });
+  })();
+  </script>

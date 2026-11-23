@@ -76,6 +76,8 @@
       .x-meta > div { min-width: 0; flex: 1; }
       .x-title { margin: 0; font: var(--type-heading); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .x-artist { margin: 2px 0 0; font: var(--type-body); color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .x-quality { margin: 4px 0 0; font: var(--type-caption); color: var(--text-secondary); font-variant-numeric: tabular-nums; letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .x-quality[hidden] { display: none; }
 
       .x-seek { position: relative; height: var(--tap); touch-action: none; cursor: pointer; display: flex; align-items: center; }
       .x-seek__track { position: relative; width: 100%; height: 5px; border-radius: var(--r-pill); background: var(--stroke-primary); overflow: visible; transition: height var(--dur-quick) ease; }
@@ -173,6 +175,7 @@
       .x-row__title { display: block; font: var(--type-body-strong); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .x-row__artist { display: block; font: var(--type-small); color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .x-row__dur { font: var(--type-caption); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+      .x-row__fmt { display: none; }
       .x-row.is-current { background: var(--fill-tertiary); }
       .x-row.is-current .x-row__title { color: var(--text-primary); }
       .x-list li + li .x-row { box-shadow: 0 -1px 0 var(--stroke-secondary); }
@@ -884,7 +887,7 @@
 
         /* Library as a table */
         .x-thead {
-          display: grid; grid-template-columns: 36px 64px minmax(0, 1.3fr) 16px minmax(0, 1fr) 40px 56px 54px;
+          display: grid; grid-template-columns: 36px 64px minmax(0, 1.3fr) 16px minmax(0, 1fr) 40px 56px 56px 54px;
           margin-top: 16px; padding: 0 0 8px; border-bottom: 1px solid var(--n-line);
           font: var(--type-tag); letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-secondary);
         }
@@ -903,6 +906,8 @@
         #list .x-eq { display: flex; visibility: hidden; }
         #list .x-row.is-current .x-eq { visibility: visible; }
         #list .x-row__dur { width: 56px; text-align: right; font: var(--type-small); font-variant-numeric: tabular-nums; }
+        #list .x-row__fmt { display: block; flex: none; width: 44px; box-sizing: border-box; padding: 1px 0; border: 1px solid var(--n-line); border-radius: 6px; text-align: center; font: var(--type-tag); font-size: 12px; letter-spacing: 0.06em; color: var(--text-secondary); white-space: nowrap; overflow: hidden; }
+        #list .x-row__fmt:empty { visibility: hidden; }
         #list .x-more { width: 36px; height: 36px; font-size: 17px; opacity: 0.55; transition: opacity var(--dur-quick) ease, border-color var(--dur-quick) ease; }
         #list li:hover .x-more, #list .x-more:focus-visible, #list .x-more[aria-expanded="true"] { opacity: 1; }
         .x-list li { transition: background var(--dur-quick) ease; }
@@ -934,7 +939,7 @@
         .x-side__brand .x-brand__name, .x-side__brand .x-brand__badge { animation: none; }
       }
     </style>
-    <link rel="manifest" href="manifest.webmanifest" />
+      <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png" />
 </head>
   <body>
@@ -981,6 +986,7 @@
                 <div>
                   <h1 class="x-title" id="title">Neska<span class="x-tm">™</span> Music</h1>
                   <p class="x-artist" id="artist">Tap Add songs to start</p>
+                  <p class="x-quality" id="quality" hidden></p>
                 </div>
                 <button type="button" class="x-lyr-btn" id="lyrBtn" aria-pressed="false" aria-controls="lyr">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 11h16M4 16h10"/></svg>Lyrics
@@ -1311,13 +1317,13 @@
             </div>
             <div>
               <label class="x-eq-pre">Crossfade<input type="range" id="xfSec" min="0" max="12" step="1" value="6" aria-valuetext="6 seconds" aria-describedby="xfNote" /><output id="xfVal">6 s</output></label>
-              <p class="x-xf-note" id="xfNote">Fades between songs while Neska is open. Turn on Locked-screen fades to keep fading when your phone is locked.</p>
+              <p class="x-xf-note" id="xfNote">Fades between songs while Neska is open. Turn on Lock-screen fades to keep fading when your phone is locked.</p>
+            </div>
+            <div id="pmRow">
+              <button type="button" class="x-set__row" id="pmSw" role="switch" aria-checked="false"><span class="x-set__txt">Lock-screen fades (pre-mix)<small>Pre-mixes the next few songs with fades while Neska is open, so they still fade when your phone is locked. Uses more memory.</small></span><span class="x-switch" aria-hidden="true"></span></button>
             </div>
             <div>
-              <button type="button" class="x-set__row" id="pmSw" role="switch" aria-checked="false"><span class="x-set__txt">Locked-screen fades<small>Pre-mixes the next few songs with fades while Neska is open, so they still fade when your phone is locked. Uses more memory.</small></span><span class="x-switch" aria-hidden="true"></span></button>
-            </div>
-            <div>
-              <button type="button" class="x-set__row" id="liveSw" role="switch" aria-checked="false"><span class="x-set__txt">Live lock-screen fades (test)<small id="liveNote">Fades live with no mix wait, even when locked. Experimental.</small></span><span class="x-switch" aria-hidden="true"></span></button>
+              <button type="button" class="x-set__row" id="liveSw" role="switch" aria-checked="false"><span class="x-set__txt">Lock-screen fades<small id="liveNote">Keeps crossfading while your phone is locked.</small></span><span class="x-switch" aria-hidden="true"></span></button>
             </div>
             <p class="x-set__label">Studio sound</p>
             <div>
@@ -1689,6 +1695,7 @@
         t.pending = false;
         if (tracks[cur] !== t) return;
         audio.src = t.src; audio.load(); applyRate();
+        showQuality(t); // the signed URL now exists
         if (wantsPlay) start(); else setLoading(false);
       }, function () {
         t.pending = false;
@@ -1766,6 +1773,175 @@
     load(index, true);
   }
 
+  /* ---------- Audio quality (issue #11) ----------
+     Format from mime or extension; sample rate and MP3 bitrate from the first 64 KB of the file,
+     read once per track id with a Range request (or a blob slice). Never touches Web Audio or playback. */
+  var qCache = {}; // id -> { busy } while reading, then { done, info }
+  function qExt(t) {
+    var n = (t.fileName || t.path || "").split("?")[0], m = /\.([a-z0-9]{2,5})$/i.exec(n);
+    return m ? m[1].toLowerCase() : "";
+  }
+  function qFormat(t) {
+    if (!t) return "";
+    var c = qCache[t.id], info = c && c.info;
+    if (info && info.fmt) return info.fmt;
+    var mi = String(t.mime || (t.blob && t.blob.type) || "").toLowerCase(), e = qExt(t);
+    if (/opus/.test(mi) || e === "opus") return "OPUS";
+    if (/mpeg|mp3/.test(mi) || e === "mp3") return "MP3";
+    if (/flac/.test(mi) || e === "flac") return "FLAC";
+    if (/wav|wave/.test(mi) || e === "wav") return "WAV";
+    if (/aiff/.test(mi) || e === "aif" || e === "aiff") return "AIFF";
+    if (/ogg/.test(mi) || e === "ogg" || e === "oga") return "OGG";
+    if (/webm/.test(mi) || e === "webm") return "WEBM";
+    if (/aac/.test(mi) && !/mp4|m4a/.test(mi) || e === "aac") return "AAC";
+    if (/mp4|m4a/.test(mi) || e === "m4a" || e === "mp4") return "M4A";
+    return e ? e.toUpperCase() : "";
+  }
+  function qStr(b, i, n) { var s = ""; for (var k = 0; k < n && i + k < b.length; k++) s += String.fromCharCode(b[i + k]); return s; }
+  function qU32(b, i) { return ((b[i] << 24) >>> 0) + (b[i + 1] << 16) + (b[i + 2] << 8) + b[i + 3]; }
+  function qLE32(b, i) { return (b[i] | (b[i + 1] << 8) | (b[i + 2] << 16)) + b[i + 3] * 16777216; }
+  var MP3_BR = {
+    "3,3": [0, 32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448],
+    "3,2": [0, 32, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384],
+    "3,1": [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320],
+    "2,3": [0, 32, 48, 56, 64, 80, 96, 112, 128, 144, 160, 176, 192, 224, 256],
+    "2,2": [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160]
+  };
+  var MP3_SR = { 3: [44100, 48000, 32000], 2: [22050, 24000, 16000], 0: [11025, 12000, 8000] };
+  function qMp3Frame(b, i) { // the frame at i, or null
+    if (b[i] !== 255 || (b[i + 1] & 0xE0) !== 0xE0) return null;
+    var ver = (b[i + 1] >> 3) & 3, lay = (b[i + 1] >> 1) & 3, bi = b[i + 2] >> 4, si = (b[i + 2] >> 2) & 3, pad = (b[i + 2] >> 1) & 1;
+    if (ver === 1 || lay === 0 || bi === 0 || bi === 15 || si === 3) return null;
+    var tab = MP3_BR[(ver === 3 ? 3 : 2) + "," + (ver === 3 ? lay : (lay === 3 ? 3 : 2))];
+    var br = tab[bi], sr = MP3_SR[ver][si];
+    var len = lay === 3 ? (Math.floor(12 * br * 1000 / sr) + pad) * 4 : Math.floor((lay === 1 && ver !== 3 ? 72 : 144) * br * 1000 / sr) + pad;
+    return { ver: ver, lay: lay, br: br, sr: sr, len: len, mono: (b[i + 3] >> 6) === 3 };
+  }
+  function qParse(b) {
+    var id3 = 0;
+    if (qStr(b, 0, 3) === "ID3" && b.length > 10) id3 = 10 + ((b[6] & 127) << 21 | (b[7] & 127) << 14 | (b[8] & 127) << 7 | (b[9] & 127)) + (b[5] & 16 ? 10 : 0);
+    var o = id3;
+    if (qStr(b, o, 4) === "fLaC") { // STREAMINFO is the first metadata block
+      var d = o + 8;
+      if (b.length > d + 13) return { fmt: "FLAC", sr: (b[d + 10] << 12) | (b[d + 11] << 4) | (b[d + 12] >> 4) };
+      return { fmt: "FLAC" };
+    }
+    if (qStr(b, 0, 4) === "RIFF" && qStr(b, 8, 4) === "WAVE") {
+      for (var p = 12; p + 8 <= b.length;) {
+        var id = qStr(b, p, 4), sz = qLE32(b, p + 4);
+        if (id === "fmt " && p + 16 <= b.length) return { fmt: "WAV", sr: qLE32(b, p + 12) };
+        p += 8 + sz + (sz & 1);
+      }
+      return { fmt: "WAV" };
+    }
+    if (qStr(b, 0, 4) === "OggS") {
+      var s = qStr(b, 0, Math.min(b.length, 4096)), k = s.indexOf("OpusHead");
+      if (k >= 0) return { fmt: "OPUS", sr: 48000 };
+      k = s.indexOf("\x01vorbis");
+      if (k >= 0 && k + 16 <= b.length) return { fmt: "OGG", sr: qLE32(b, k + 12) };
+      return null;
+    }
+    if (qStr(b, 4, 4) === "ftyp") return qMp4(b);
+    // MP3: the first real frame after any ID3v2 tag
+    for (var i = o, end = Math.min(b.length - 4, o + 16384); i < end; i++) {
+      var f = qMp3Frame(b, i); if (!f) continue;
+      if (i + f.len + 4 <= b.length && !qMp3Frame(b, i + f.len)) continue; // a false sync: no frame follows
+      var x = i + 4 + (f.ver === 3 ? (f.mono ? 17 : 32) : (f.mono ? 9 : 17)), tag = qStr(b, x, 4);
+      var vbr = tag === "Xing" || qStr(b, i + 36, 4) === "VBRI";
+      return { fmt: "MP3", sr: f.sr, br: f.br, vbr: vbr, skip: id3 };
+    }
+    return null;
+  }
+  function qMp4(b) { // walk moov > trak > mdia > (mdhd, minf > stbl > stsd)
+    var res = { fmt: "" }, ts = 0;
+    function walk(s, e) {
+      while (s + 8 <= e) {
+        var size = qU32(b, s), type = qStr(b, s + 4, 4), h = 8;
+        if (size === 1) { size = qU32(b, s + 12) + qU32(b, s + 8) * 4294967296; h = 16; } else if (size === 0) size = b.length - s;
+        if (size < h) return;
+        var end = Math.min(s + size, b.length);
+        if (type === "moov" || type === "trak" || type === "mdia" || type === "minf" || type === "stbl") walk(s + h, end);
+        else if (type === "mdhd" && s + h + 24 <= b.length) ts = qU32(b, s + h + (b[s + h] === 1 ? 20 : 12));
+        else if (type === "stsd" && s + h + 8 + 36 <= b.length) {
+          var en = s + h + 8, et = qStr(b, en + 4, 4);
+          if (et === "mp4a" || et === "alac") { res.fmt = et === "alac" ? "ALAC" : ""; res.sr = (b[en + 32] << 8) | b[en + 33]; }
+        }
+        if (s + size > b.length) return; // runs past the bytes read
+        s += size;
+      }
+    }
+    walk(0, b.length);
+    if (!res.sr && ts) res.sr = ts;
+    return res.sr || res.fmt ? res : null;
+  }
+  function qRead(t) { // resolves { bytes, total } with at most 64 KB
+    var LIM = 65536;
+    if (t.blob) {
+      var sl = t.blob.slice(0, LIM);
+      var ab = sl.arrayBuffer ? sl.arrayBuffer() : new Response(sl).arrayBuffer();
+      return ab.then(function (a) { return { bytes: new Uint8Array(a), total: t.blob.size }; });
+    }
+    return fetch(t.src, { headers: { Range: "bytes=0-65535" } }).then(function (r) {
+      if (!r.ok) throw new Error("status " + r.status);
+      var total = null, cr = r.headers.get("Content-Range"), m = cr && /\/(\d+)\s*$/.exec(cr);
+      if (m) total = +m[1];
+      else if (r.status === 200) { var cl = +r.headers.get("Content-Length"); if (cl > 0) total = cl; }
+      if (!r.body || !r.body.getReader) return r.arrayBuffer().then(function (a) { return { bytes: new Uint8Array(a.slice(0, LIM)), total: total }; });
+      var rd = r.body.getReader(), parts = [], got = 0;
+      function pump() {
+        return rd.read().then(function (c) {
+          if (!c.done && c.value) { parts.push(c.value); got += c.value.length; }
+          if (c.done || got >= LIM) {
+            if (!c.done) { try { rd.cancel(); } catch (e) {} } // the server ignored Range: stop at 64 KB
+            var out = new Uint8Array(Math.min(got, LIM)), at = 0;
+            parts.forEach(function (p) { var n = Math.min(p.length, out.length - at); if (n > 0) { out.set(p.subarray(0, n), at); at += n; } });
+            return { bytes: out, total: total };
+          }
+          return pump();
+        });
+      }
+      return pump();
+    });
+  }
+  function qKhz(sr) { return parseFloat((sr / 1000).toFixed(2)) + " kHz"; }
+  function qKbps(n) { return Math.round(n).toLocaleString("en-US") + " kbps"; }
+  function qLine(t) {
+    var c = qCache[t.id], info = (c && c.info) || {}, parts = [qFormat(t)];
+    var d = t.duration, sz = info.total ? info.total - (info.skip || 0) : 0, est = sz > 0 && d > 0 ? sz * 8 / d / 1000 : 0;
+    if (info.fmt === "MP3" && info.br && !info.vbr) parts.push(qKbps(info.br));
+    else if (info.vbr) parts.push(est ? "VBR ~" + qKbps(est) : "VBR");
+    else if (est) parts.push(qKbps(est));
+    if (info.sr > 0 && info.sr < 1000000) parts.push(qKhz(info.sr));
+    return parts.filter(Boolean).join(" · ");
+  }
+  function qPaint(t) {
+    var el = $("quality"); if (!el || tracks[cur] !== t) return;
+    var s = qLine(t); el.textContent = s; el.hidden = !s;
+  }
+  function showQuality(t) {
+    if (!t) return;
+    qPaint(t);
+    var c = qCache[t.id];
+    if (c || !window.fetch || !window.Promise) return;
+    var cloud = window.NeskaCloud;
+    if (!t.blob && (!t.src || t.pending || (cloud && cloud.needsSrc(t)))) return; // no usable URL yet; tried again once it has one
+    c = qCache[t.id] = { busy: true };
+    var go = function () {
+      qRead(t).then(function (r) {
+        var info = null; try { info = qParse(r.bytes); } catch (e) {}
+        info = info || {}; info.total = r.total;
+        if (!info.fmt) delete info.fmt;
+        c.info = info; c.busy = false; c.done = true;
+        qPaint(t); qRow(t);
+      }).then(null, function () { c.busy = false; c.done = true; c.info = c.info || {}; });
+    };
+    if (window.requestIdleCallback) requestIdleCallback(go, { timeout: 1500 }); else setTimeout(go, 300); // after the song's own load
+  }
+  function qRow(t) { // the desktop table's tag, if parsing named a truer format (ALAC, OPUS)
+    var i = tracks.indexOf(t), li = $("list") && $("list").children[i], fm = li && li.querySelector(".x-row__fmt");
+    if (fm) fm.textContent = qFormat(t);
+  }
+
   /* ---------- Rendering ---------- */
   var bgOn = "A";
   function renderTrack() {
@@ -1794,6 +1970,7 @@
     // mini player
     paint($("miniCanvas"), t);
     $("miniTitle").textContent = t.title; $("miniArtist").textContent = t.artist;
+    showQuality(t);
     renderUpNext();
     markCurrent();
     setMediaSession(t);
@@ -1833,6 +2010,7 @@
     if (empty) {
       $("title").innerHTML = 'Neska<span class="x-tm">™</span> Music';
       $("artist").textContent = "Tap Add songs to start";
+      $("quality").hidden = true; $("quality").textContent = "";
       $("count").textContent = "";
       $("total").textContent = "--:--";
       document.title = "Neska™ Music";
@@ -1889,7 +2067,8 @@
       if (t.unsaved) { var tag = document.createElement("span"); tag.className = "x-unsaved"; tag.textContent = "Not saved"; ar.appendChild(tag); }
       var eq = document.createElement("span"); eq.className = "x-eq"; eq.setAttribute("aria-hidden", "true"); eq.innerHTML = "<i></i><i></i><i></i>";
       var du = document.createElement("span"); du.className = "x-row__dur"; du.textContent = t.duration ? fmt(t.duration) : "";
-      b.appendChild(cv); b.appendChild(txt); b.appendChild(eq); b.appendChild(du);
+      var fm = document.createElement("span"); fm.className = "x-row__fmt"; fm.setAttribute("aria-hidden", "true"); fm.textContent = qFormat(t);
+      b.appendChild(cv); b.appendChild(txt); b.appendChild(eq); b.appendChild(du); b.appendChild(fm);
       b.setAttribute("aria-label", t.title + ", " + t.artist + (t.duration ? ", " + fmt(t.duration) : ""));
       li.appendChild(b); list.appendChild(li);
     });
@@ -1908,6 +2087,7 @@
     var t = tracks[i];
     li.querySelector(".x-row__dur").textContent = fmt(t.duration);
     li.firstChild.setAttribute("aria-label", t.title + ", " + t.artist + ", " + fmt(t.duration));
+    if (i === cur) showQuality(t); // the bitrate needs the duration
   }
   function filter() {
     var q = $("search").value.trim().toLowerCase(), shown = 0;
@@ -2587,13 +2767,16 @@
      The next 2 to 4 songs are decoded, mixed offline with equal-power fades into one
      16-bit WAV, and returned with each song's place in the mix. */
   var PM_KEY = "neska.premix", pmOn = false;
+  var hasSession = !!navigator.audioSession; // live fades exist: the pre-mix fallback is hidden and never runs
   try { if (xfStore && xfStore.getItem(PM_KEY) === "1") pmOn = true; } catch (e) {}
+  if (hasSession) { pmOn = false; var pmRowEl = $("pmRow"); if (pmRowEl) { pmRowEl.hidden = true; pmRowEl.style.display = "none"; } }
   function syncPm() {
     var b = $("pmSw"); if (!b) return;
     b.setAttribute("aria-checked", String(pmOn));
     b.setAttribute("aria-disabled", String(!xfSec));
   }
   $("pmSw").addEventListener("click", function () {
+    if (hasSession) return;
     if (!xfSec) { toast("Turn on Crossfade first"); return; }
     pmOn = !pmOn;
     if (xfStore) { try { xfStore.setItem(PM_KEY, pmOn ? "1" : "0"); } catch (e) {} }
@@ -2602,10 +2785,10 @@
   });
   syncPm();
 
-  /* Live lock-screen fades (test): Safari's Audio Session API keeps bridgeCtx playing while locked */
-  var LIVE_KEY = "neska.livefade", liveOn = false;
+  /* Lock-screen fades: Safari's Audio Session API keeps bridgeCtx playing while locked. On by default; only a stored "0" turns it off */
+  var LIVE_KEY = "neska.livefade", liveOn = true;
   var liveOk = !!(navigator.audioSession && "type" in navigator.audioSession);
-  try { if (xfStore && xfStore.getItem(LIVE_KEY) === "1") liveOn = true; } catch (e) {}
+  try { if (xfStore && xfStore.getItem(LIVE_KEY) === "0") liveOn = false; } catch (e) {}
   if (!liveOk) liveOn = false;
   function liveActive() { return !!(liveOk && liveOn && xfSec > 0); }
   function liveSession() { if (liveOk && liveOn) { try { navigator.audioSession.type = "playback"; } catch (e) {} } }
@@ -2613,10 +2796,10 @@
     var b = $("liveSw"); if (!b) return;
     b.setAttribute("aria-checked", String(!!(liveOk && liveOn)));
     b.setAttribute("aria-disabled", String(!liveOk || !xfSec));
-    if (liveOk === false) $("liveNote").textContent = "Not supported on this iPhone's Safari. Use Locked-screen fades instead.";
+    if (liveOk === false) $("liveNote").textContent = "Not supported on this iPhone's Safari. Use Lock-screen fades (pre-mix) instead.";
   }
   $("liveSw").addEventListener("click", function () {
-    if (!liveOk) { toast("Not supported here. Use Locked-screen fades."); return; }
+    if (!liveOk) { toast("Not supported here. Use Lock-screen fades (pre-mix)."); return; }
     if (!xfSec) { toast("Turn on Crossfade first"); return; }
     liveOn = !liveOn;
     if (xfStore) { try { xfStore.setItem(LIVE_KEY, liveOn ? "1" : "0"); } catch (e) {} }
@@ -4683,6 +4866,28 @@
   if (mq.matches) apply();
 })();
     </script>
-  <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){});});}</script>
+    <script>
+  (function(){
+    if(!("serviceWorker" in navigator)) return;
+    var hadCtrl = !!navigator.serviceWorker.controller, shown = false;
+    function banner(){
+      if(shown) return; shown = true;
+      var b = document.createElement("button");
+      b.type = "button";
+      b.textContent = "New version of Neska \u2014 tap to refresh";
+      b.setAttribute("aria-live","polite");
+      b.style.cssText = "position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom));z-index:99999;padding:12px 18px;min-height:44px;border-radius:999px;border:1px solid rgba(232,180,160,.55);background:#3b1230;color:#fbeee6;font:600 14px/1.2 system-ui,-apple-system,sans-serif;box-shadow:0 8px 30px rgba(0,0,0,.45),0 0 18px rgba(232,160,150,.35);cursor:pointer";
+      b.onclick = function(){ location.reload(); };
+      document.body.appendChild(b);
+    }
+    navigator.serviceWorker.addEventListener("controllerchange", function(){ if(hadCtrl) banner(); hadCtrl = true; });
+    window.addEventListener("load", function(){
+      navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then(function(reg){
+        document.addEventListener("visibilitychange", function(){ if(document.visibilityState === "visible") reg.update().catch(function(){}); });
+        setInterval(function(){ reg.update().catch(function(){}); }, 30*60*1000);
+      }).catch(function(){});
+    });
+  })();
+  </script>
 </body>
 </html>
