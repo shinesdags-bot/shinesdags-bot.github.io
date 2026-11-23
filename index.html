@@ -1076,6 +1076,47 @@
       @media (max-height: 219px) and (max-width: 300px) { .x-pip .x-ctl--mode { display: none; } }
       @media (max-height: 130px) { .x-pip__brand { display: none; } .x-pip { grid-template-areas: "info ctls" "seek seek"; } }
       @media (prefers-reduced-motion: reduce) { .x-pip__art { transition: none; } }
+      /* ===== Offline songs: rose-gold "saved offline" badge ===== */
+      .x-off { flex: none; display: inline-grid; place-items: center; width: 16px; height: 16px; color: #e8c4a8; filter: drop-shadow(0 0 4px rgba(232, 196, 168, 0.45)); }
+      .x-off[hidden] { display: none; }
+      .x-off svg { display: block; width: 16px; height: 16px; }
+      @media (min-width: 900px) { #list .x-off[hidden] { display: inline-grid; visibility: hidden; } }
+      /* ===== Offline songs, part 2: Save all, offline chip, dimmed rows, settings ===== */
+      .x-offall-row { display: flex; align-items: center; margin-top: 8px; }
+      .x-offall-row[hidden], .x-offall[hidden], .x-offall-cap[hidden], .x-offchip[hidden] { display: none; }
+      .x-offall {
+        display: inline-flex; align-items: center; gap: 6px; min-height: var(--tap); padding: 0 16px 0 12px; box-sizing: border-box;
+        border-radius: var(--r-pill); border: 1px solid var(--n-line-strong); background: var(--n-glass);
+        -webkit-backdrop-filter: var(--n-blur); backdrop-filter: var(--n-blur); color: #f7e1cf; font: var(--type-label);
+        font-variant-numeric: tabular-nums; box-shadow: 0 0 16px rgba(232, 196, 168, 0.12); cursor: pointer;
+        transition: transform var(--dur-quick) ease, background var(--dur-quick) ease, border-color var(--dur-quick) ease;
+      }
+      .x-offall svg { flex: none; color: #e8c4a8; }
+      .x-offall:active { transform: scale(0.96); background: rgba(74, 24, 56, 0.85); }
+      .x-offall:focus-visible { outline: 2px solid #e8c4a8; outline-offset: 3px; }
+      .x-offall.is-running { border-color: #e8c4a8; background: linear-gradient(90deg, rgba(201, 138, 155, 0.34), rgba(201, 138, 155, 0.12)); }
+      .x-offall.is-running svg { animation: x-offall-pulse 1.4s ease-in-out infinite alternate; }
+      @keyframes x-offall-pulse { from { opacity: 1; } to { opacity: 0.35; } }
+      @media (hover: hover) { .x-offall:hover { border-color: rgba(232, 196, 168, 0.75); background: rgba(201, 138, 155, 0.26); } }
+      .x-offall-cap { display: inline-flex; align-items: center; gap: 6px; margin: 0; font: var(--type-caption); color: var(--text-secondary); }
+      .x-offall-cap svg { flex: none; color: #e8c4a8; }
+      .x-offchip {
+        flex: none; display: inline-flex; align-items: center; gap: 5px; margin-left: auto; padding: 4px 10px 4px 8px;
+        border-radius: var(--r-pill); border: 1px solid var(--n-line-strong); background: var(--n-glass);
+        -webkit-backdrop-filter: var(--n-blur); backdrop-filter: var(--n-blur); color: #f7e1cf; font: var(--type-caption); white-space: nowrap;
+      }
+      .x-offchip svg { flex: none; width: 14px; height: 14px; color: #e8c4a8; }
+      .x-offchip + .x-acct { margin-left: 8px; }
+      .x-dtop .x-offchip { margin: 0 10px 0 0; }
+      .x-dim { opacity: 0.45; }
+      .x-offset .x-set__row { border-top: 0; }
+      .x-offset__clear {
+        width: 100%; min-height: var(--tap); margin-top: 4px; border-radius: var(--r-pill); font: var(--type-label);
+        color: #f3d3dc; background: #3b1230; border: 1px solid var(--n-line); cursor: pointer;
+      }
+      .x-offset__clear:disabled { opacity: 0.45; cursor: default; }
+      .x-offset__clear:focus-visible { outline: 2px solid #e8c4a8; outline-offset: 2px; }
+      @media (prefers-reduced-motion: reduce) { .x-offall.is-running svg { animation: none; } }
     </style>
       <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png" />
@@ -1229,6 +1270,16 @@
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
                     Add songs
                   </label>
+                </div>
+                <div class="x-offall-row" id="offAllRow" hidden>
+                  <button type="button" class="x-offall" id="offAll" hidden>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v8M8.5 12l3.5 3.5 3.5-3.5"/></svg>
+                    <span id="offAllTxt">Save all offline</span>
+                  </button>
+                  <p class="x-offall-cap" id="offAllCap" hidden>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/></svg>
+                    All saved offline
+                  </p>
                 </div>
                 <div class="x-search">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>
@@ -1521,6 +1572,13 @@
             <div>
               <button type="button" class="x-set__row" id="liveSw" role="switch" aria-checked="false"><span class="x-set__txt">Lock-screen fades<small id="liveNote">Keeps crossfading while your phone is locked.</small></span><span class="x-switch" aria-hidden="true"></span></button>
             </div>
+            <p class="x-set__label">Offline</p>
+            <div class="x-offset">
+              <div class="x-set__row">
+                <span class="x-set__txt">Offline songs<small id="offSum" aria-live="polite">0 songs · 0 MB saved</small></span>
+              </div>
+              <button type="button" class="x-offset__clear" id="offClear" aria-haspopup="dialog">Remove all offline songs</button>
+            </div>
             <p class="x-set__label">Studio sound</p>
             <div>
               <button type="button" class="x-set__row" id="studioSw" role="switch" aria-checked="false">
@@ -1552,6 +1610,17 @@
           </div>
         </div>
 
+        <div class="x-confirm x-offdel" id="offDel" role="alertdialog" aria-modal="true" aria-labelledby="offDelTitle" aria-describedby="offDelText" hidden>
+          <div class="x-confirm__card">
+            <h2 class="x-confirm__title" id="offDelTitle">Remove all offline songs?</h2>
+            <p class="x-confirm__text" id="offDelText">The songs stay in your account. You'll need a connection to play them.</p>
+            <div class="x-confirm__btns">
+              <button type="button" class="x-confirm__cancel" id="offDelCancel">Cancel</button>
+              <button type="button" class="x-confirm__ok" id="offDelOk">Remove</button>
+            </div>
+          </div>
+        </div>
+
         <div class="x-confirm x-lyr-dlg" id="lyrDlg" role="dialog" aria-modal="true" aria-labelledby="lyrDlgTitle" hidden>
           <form class="x-confirm__card" id="lyrForm" novalidate>
             <h2 class="x-confirm__title" id="lyrDlgTitle">Edit lyrics</h2>
@@ -1572,6 +1641,146 @@
       </div>
     </div>
     <script src="hark.js"></script>
+    <script>
+/* ---------- Offline songs: IndexedDB "neska-offline", store "songs", key = cloudId ---------- */
+(function () {
+  "use strict";
+  var DB = "neska-offline", STORE = "songs", ids = new Set(), busy = {}, dbp = null, persistAsked = false, gen = 0;
+  function noop() {}
+  function open() {
+    if (dbp) return dbp;
+    dbp = new Promise(function (res, rej) {
+      if (!window.indexedDB) { rej(new Error("IndexedDB unavailable")); return; }
+      var r;
+      try { r = indexedDB.open(DB, 1); } catch (e) { rej(e); return; }
+      r.onupgradeneeded = function () { if (!r.result.objectStoreNames.contains(STORE)) r.result.createObjectStore(STORE); };
+      r.onsuccess = function () { var db = r.result; db.onversionchange = function () { db.close(); dbp = null; }; res(db); };
+      r.onerror = function () { rej(r.error); };
+    });
+    dbp.catch(function () { dbp = null; });
+    return dbp;
+  }
+  // one transaction; resolves with the last request's result once it commits
+  function tx(mode, fn) {
+    return open().then(function (db) {
+      return new Promise(function (res, rej) {
+        var t = db.transaction(STORE, mode), out, req = fn(t.objectStore(STORE));
+        if (req) req.onsuccess = function () { out = req.result; };
+        t.oncomplete = function () { res(out); };
+        t.onerror = function () { rej(t.error || (req && req.error)); };
+        t.onabort = function () { rej(t.error || (req && req.error) || new Error("aborted")); };
+      });
+    });
+  }
+  function emit(id, saved) {
+    try { window.dispatchEvent(new CustomEvent("neska-offline-change", { detail: { id: id, saved: saved } })); } catch (e) {}
+  }
+  function has(id) { return !!id && ids.has(id); }
+  function get(id) {
+    if (!id) return Promise.resolve(null);
+    return tx("readonly", function (s) { return s.get(id); }).then(function (v) { return v && v.blob ? v.blob : null; });
+  }
+  function persistOnce() {
+    if (persistAsked) return;
+    persistAsked = true;
+    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(noop); } catch (e) {}
+  }
+  function fetchBlob(t, signal) {
+    if (t.blob) return Promise.resolve(t.blob);
+    var c = window.NeskaCloud;
+    var p = c && c.needsSrc(t) ? Promise.resolve(c.resolve(t)) : Promise.resolve(t.src);
+    return p.then(function () {
+      if (!t.src) throw new Error("No song URL");
+      if (signal && signal.aborted) { var ab = new Error("aborted"); ab.name = "AbortError"; throw ab; }
+      return fetch(t.src, signal ? { signal: signal } : undefined).then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.blob();
+      });
+    });
+  }
+  // opts.signal: an AbortSignal that stops the download (rejects with an AbortError)
+  function save(t, opts) {
+    if (!t || !t.cloudId) return Promise.reject(new Error("Only songs saved to your account can be kept offline"));
+    var id = t.cloudId, g = gen, signal = opts && opts.signal;
+    if (busy[id]) return busy[id];
+    persistOnce();
+    var job = fetchBlob(t, signal).then(function (blob) {
+      if (g !== gen) throw new Error("cancelled");
+      var rec = { blob: blob, mime: blob.type || t.mime || "audio/mpeg", size: blob.size, savedAt: Date.now() };
+      return tx("readwrite", function (s) { return s.put(rec, id); });
+    }).then(function () {
+      if (g !== gen) { tx("readwrite", function (s) { return s.delete(id); }).catch(noop); throw new Error("cancelled"); }
+      ids.add(id); emit(id, true);
+      return true;
+    });
+    busy[id] = job;
+    var done = function () { if (busy[id] === job) delete busy[id]; };
+    job.then(done, done);
+    return job;
+  }
+  function remove(id) {
+    if (!id) return Promise.resolve();
+    var was = ids.delete(id);
+    if (was) emit(id, false);
+    return tx("readwrite", function (s) { return s.delete(id); });
+  }
+  function list() {
+    return open().then(function (db) {
+      return new Promise(function (res, rej) {
+        var out = [], t = db.transaction(STORE, "readonly"), req = t.objectStore(STORE).openCursor();
+        req.onsuccess = function () {
+          var c = req.result; if (!c) return;
+          out.push({ id: c.key, size: (c.value && c.value.size) || 0 });
+          c.continue();
+        };
+        t.oncomplete = function () { res(out); };
+        t.onerror = t.onabort = function () { rej(t.error); };
+      });
+    });
+  }
+  function clear() {
+    gen++; busy = {};
+    var had = ids.size > 0;
+    ids.clear();
+    if (had) emit(null, false);
+    return tx("readwrite", function (s) { return s.clear(); });
+  }
+  function isBusy(id) { return !!busy[id]; }
+  // the row badge: a rose-gold down arrow in a circle, shown when the song is saved
+  var ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<circle cx="12" cy="12" r="9"/><path d="M12 7.5v8M8.5 12l3.5 3.5 3.5-3.5"/></svg>';
+  function badge(t) {
+    var s = document.createElement("span");
+    s.className = "x-off"; s.setAttribute("role", "img"); s.setAttribute("aria-label", "Saved offline");
+    s.innerHTML = ICON;
+    s.dataset.cid = (t && t.cloudId) || "";
+    s.hidden = !has(s.dataset.cid);
+    return s;
+  }
+  function refreshBadges() {
+    [].forEach.call(document.querySelectorAll(".x-off"), function (s) { s.hidden = !has(s.dataset.cid); });
+  }
+  window.addEventListener("neska-offline-change", refreshBadges);
+
+  // startup: load the saved ids into memory so has() answers at once
+  var g0 = gen;
+  open().then(function (db) {
+    return new Promise(function (res) {
+      var t = db.transaction(STORE, "readonly"), s = t.objectStore(STORE), keys = [];
+      if (s.getAllKeys) { var r = s.getAllKeys(); r.onsuccess = function () { keys = r.result || []; }; }
+      else { var c = s.openKeyCursor ? s.openKeyCursor() : s.openCursor(); c.onsuccess = function () { var k = c.result; if (k) { keys.push(k.key); k.continue(); } }; }
+      t.oncomplete = function () { res(keys); };
+      t.onerror = t.onabort = function () { res([]); };
+    });
+  }).then(function (keys) {
+    if (g0 !== gen || !keys.length) return;
+    keys.forEach(function (k) { ids.add(k); });
+    emit(null, true);
+  }).catch(noop);
+
+  window.NeskaOffline = { has: has, get: get, save: save, remove: remove, list: list, clear: clear, busy: isBusy, badge: badge };
+})();
+    </script>
     <script>
 (function () {
   "use strict";
@@ -1876,8 +2085,8 @@
   }
   function autoIndex() {
     if (!autoplay || repeat !== "off" || !tracks.length) return -1;
-    if (autoT && autoT !== tracks[cur] && played.indexOf(autoT) < 0 && tracks.indexOf(autoT) > -1) return tracks.indexOf(autoT);
-    var now = tracks[cur], left = tracks.filter(function (t) { return t !== now && played.indexOf(t) < 0; });
+    if (autoT && autoT !== tracks[cur] && played.indexOf(autoT) < 0 && tracks.indexOf(autoT) > -1 && !blocked(autoT)) return tracks.indexOf(autoT);
+    var now = tracks[cur], left = tracks.filter(function (t) { return t !== now && played.indexOf(t) < 0 && !blocked(t); });
     var same = now ? left.filter(function (t) { return t.artist && t.artist === now.artist; }) : [];
     var pool = same.length ? same : left;
     autoT = pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
@@ -1949,6 +2158,11 @@
     if (nt && nt !== tracks[cur] && cloud.needsSrc(nt)) { try { Promise.resolve(cloud.resolve(nt)).catch(function () {}); } catch (e) {} }
   }
 
+  /* the offline copy's blob URL, revoked when the track changes */
+  var offURL = null, offTok = 0;
+  function offRevoke() { if (offURL) { try { URL.revokeObjectURL(offURL); } catch (e) {} offURL = null; } }
+  /* offline with no copy of this song: the cloud script decides (NeskaPlayer.isBlocked) */
+  function blocked(t) { var P0 = window.NeskaPlayer, f = P0 && P0.isBlocked; return !!(f && t && f(t)); }
   function load(index, play) {
     brStop(); pmCancelJob(); pmExit(); // any normal load leaves the pre-mix
     cur = index;
@@ -1956,9 +2170,44 @@
     seeking = false;
     resetPlay();
     watchClear(true);
+    if (blocked(t)) { // nothing to play until it's back online: show it, no src, no spinner
+      offTok++;
+      if (offURL) { var bOff = offURL; offURL = null; setTimeout(function () { try { URL.revokeObjectURL(bOff); } catch (e) {} }, 0); }
+      audio.removeAttribute("src"); try { audio.load(); } catch (e) {}
+      renderTrack();
+      if (play) toast("Not saved offline");
+      wantsPlay = false; setLoading(false); syncPlaying(); BG.release();
+      return;
+    }
     if (play) { BG.hold(); slowArm(); }
     if (audio.preload !== "auto") audio.preload = "auto";
     if (t && played.indexOf(t) < 0) played.push(t);
+    var tok = ++offTok, prevOff = offURL; offURL = null;
+    var skipOff = !!(t && t.offlineSkip); if (t) t.offlineSkip = false;
+    var off = window.NeskaOffline;
+    if (t && t.cloudId && !skipOff && off && off.has(t.cloudId)) {
+      // Saved offline: play the stored blob, no signing, no network
+      t.pending = true;
+      audio.removeAttribute("src"); try { audio.load(); } catch (e) {}
+      if (prevOff) { try { URL.revokeObjectURL(prevOff); } catch (e) {} }
+      renderTrack();
+      if (play) { wantsPlay = true; setLoading(true); syncPlaying(); } else setLoading(false);
+      off.get(t.cloudId).then(function (blob) {
+        if (!blob) throw new Error("missing");
+        if (tok !== offTok || tracks[cur] !== t) return;
+        t.pending = false;
+        offURL = URL.createObjectURL(blob);
+        audio.src = offURL; audio.load(); applyRate();
+        showQuality(t);
+        if (wantsPlay) start(); else setLoading(false);
+      }).catch(function () {
+        if (tok !== offTok || tracks[cur] !== t) return;
+        t.pending = false;
+        t.offlineSkip = true; load(cur, wantsPlay); // the normal path
+      });
+      return;
+    }
+    if (prevOff) { var oldOff = prevOff; setTimeout(function () { try { URL.revokeObjectURL(oldOff); } catch (e) {} }, 0); }
     var cloud = window.NeskaCloud;
     if (cloud && cloud.needsSrc(t)) {
       // Cloud track: fetch a signed URL first
@@ -1987,6 +2236,9 @@
   }
   function start() {
     if (!tracks.length) return;
+    var t0 = tracks[cur];
+    if (blocked(t0)) { toast("Not saved offline"); return; }
+    if (t0 && !t0.pending && !audio.getAttribute("src") && !br && !pm) { load(cur, true); return; } // e.g. back online after it was blocked
     if (audio.paused) { BG.hold(); slowArm(); }
     if (tracks[cur] && tracks[cur].pending) { wantsPlay = true; setLoading(true); syncPlaying(); return; }
     wantsPlay = true;
@@ -2004,7 +2256,12 @@
   function isPlaying() { return !!(br && br.live) || !!(pm && pm.swapping && wantsPlay) || (!audio.paused && !audio.ended); }
   function toggle() { if (!tracks.length) return; if (!isPlaying()) { brUnlock(); start(); } else pause(); }
 
-  function goTo(p, play) { pos = (p + order.length) % order.length; load(order[pos], play); }
+  function goTo(p, play) {
+    var n = order.length, q = (p + n) % n, step = swipeDir === "right" ? -1 : 1, tries = 0;
+    while (tries < n && blocked(tracks[order[q]])) { q = (q + step + n) % n; tries++; } // offline: past songs with no copy
+    if (tries >= n) { pos = (p + n) % n; load(order[pos], play); return; } // none playable: load() says so
+    pos = q; load(order[pos], play);
+  }
   function next(fromUser) {
     if (!tracks.length) return;
     if (pm && !pm.swapping && pm.i < pm.segs.length - 1) { pmJump(pm.i + 1); return; } // inside a mix: on to its next song
@@ -2033,6 +2290,7 @@
   }
   function stopAtEnd() { wantsPlay = false; setLoading(false); syncPlaying(); watchClear(false); BG.release(); }
   function playTrack(index) {
+    if (blocked(tracks[index])) { toast("Not saved offline"); return false; }
     brUnlock();
     if (index === cur) brCancel(true); else brStop();
     swipeDir = "";
@@ -2325,7 +2583,8 @@
     else $("seekBuf").style.width = "0";
   }
   function setLoading(on) {
-    loading = on;
+    on = !!on;
+    if (loading !== on) { loading = on; try { window.dispatchEvent(new CustomEvent("neska-loading", { detail: { loading: on } })); } catch (e) {} }
     ["playBtn", "miniPlay"].forEach(function (id) { $(id).classList.toggle("is-loading", on); });
   }
   function syncPlaying() {
@@ -2357,7 +2616,9 @@
       var eq = document.createElement("span"); eq.className = "x-eq"; eq.setAttribute("aria-hidden", "true"); eq.innerHTML = "<i></i><i></i><i></i>";
       var du = document.createElement("span"); du.className = "x-row__dur"; du.textContent = t.duration ? fmt(t.duration) : "";
       var fm = document.createElement("span"); fm.className = "x-row__fmt"; fm.setAttribute("aria-hidden", "true"); fm.textContent = qFormat(t);
-      b.appendChild(cv); b.appendChild(txt); b.appendChild(eq); b.appendChild(du); b.appendChild(fm);
+      b.appendChild(cv); b.appendChild(txt); b.appendChild(eq);
+      if (window.NeskaOffline) b.appendChild(window.NeskaOffline.badge(t));
+      b.appendChild(du); b.appendChild(fm);
       b.setAttribute("aria-label", t.title + ", " + t.artist + (t.duration ? ", " + fmt(t.duration) : ""));
       li.appendChild(b); list.appendChild(li);
     });
@@ -2388,9 +2649,17 @@
     $("empty").hidden = shown > 0 || !tracks.length;
   }
   $("search").addEventListener("input", filter);
+  // offline badges: refresh each row's song id (it may have been uploaded since) and state
+  window.addEventListener("neska-offline-change", function () {
+    var off = window.NeskaOffline; if (!off) return;
+    [].forEach.call(list.children, function (li) {
+      var t = tracks[+li.dataset.index], s = li.querySelector(".x-off"); if (!t || !s) return;
+      s.dataset.cid = t.cloudId || ""; s.hidden = !off.has(t.cloudId);
+    });
+  });
   list.addEventListener("click", function (e) {
     var b = e.target.closest(".x-row"); if (!b) return;
-    playTrack(+b.dataset.index);
+    if (playTrack(+b.dataset.index) === false) return;
     showView("now");
   });
 
@@ -2547,6 +2816,12 @@
     if (!audio.getAttribute("src") || !tracks.length) return;
     if (pm) { pmSkipKey = pmKey(); pmExit(true); pmFailToast(); return; } // the mix won't play: back to the song itself
     var t = tracks[cur];
+    // Offline copy won't play: load the song the normal way
+    if (offURL && audio.getAttribute("src") === offURL && t.cloudId) {
+      t.offlineSkip = true;
+      load(cur, wantsPlay);
+      return;
+    }
     // Cloud track: refetch its signed URL once
     if (t.cloudId && !t.blob && !t.cloudRetried && window.NeskaCloud) {
       t.cloudRetried = true; t.src = null; t.srcExp = 0;
@@ -2838,14 +3113,14 @@
     else if (repeat === "off") { idx = autoIndex(); if (idx < 0) return null; auto = true; }
     else { p = 0; idx = order[0]; }
     var t = tracks[idx];
-    if (idx === cur || !t || t.supported === false) return null;
+    if (idx === cur || !t || t.supported === false || blocked(t)) return null;
     return { p: p, t: t, auto: auto };
   }
   /* prefetch: both songs, one after the other, only while the page is visible */
   function brRelease() { // drop any prefetched buffers
     var p = prep; prep = null;
     if (!p) return;
-    p.dead = true; p.out = p.inn = null;
+    p.dead = true; p.out = p.inn = null; p.nxBlob = null;
     if (p.ac) { try { p.ac.abort(); } catch (e) {} }
   }
   function brDecode(ab) {
@@ -2857,17 +3132,33 @@
       if (r && r.then) r.then(y, n);
     });
   }
-  function brLoad(p, t, src, isNext) { // fetch and decode one song; rejects with a reason when too big, too short or failed (0 when stale)
+  /* the song's offline copy as a Blob, or null (no copy, or it can't be read) */
+  function offBlob(t) {
+    var off = window.NeskaOffline;
+    if (!off || !t || !t.cloudId || !off.has(t.cloudId)) return Promise.resolve(null);
+    return off.get(t.cloudId).then(function (b) { return b || null; }, function () { return null; });
+  }
+  function blobBuf(b) { return b.arrayBuffer ? b.arrayBuffer() : readBuffer(b); }
+  // blob: the offline copy already read, null for none, undefined to look it up
+  function brLoad(p, t, src, isNext, blob) { // fetch and decode one song; rejects with a reason when too big, too short or failed (0 when stale)
     var dl = isNext ? "couldn't download next song" : "couldn't download this song";
     if (t.blob && t.blob.size > XF_MAX) return Promise.reject("song too large");
     var opt = p.ac ? { signal: p.ac.signal } : {};
-    return fetch(src, opt).then(function (r) {
+    return (blob !== undefined ? Promise.resolve(blob) : offBlob(t)).then(function (ob) {
       if (p.dead) throw 0;
-      if (!r.ok && r.status !== 0) throw dl;
-      var len = +(r.headers.get("content-length") || 0);
-      if (len > XF_MAX) throw "song too large";
-      return r.arrayBuffer().then(null, function () { throw p.dead ? 0 : dl; });
-    }, function () { throw p.dead ? 0 : dl; }).then(function (ab) {
+      if (ob) { // saved offline: read the stored copy, no network
+        if (ob.size > XF_MAX) throw "song too large";
+        return blobBuf(ob).then(null, function () { throw p.dead ? 0 : dl; });
+      }
+      if (!src) throw dl;
+      return fetch(src, opt).then(function (r) {
+        if (p.dead) throw 0;
+        if (!r.ok && r.status !== 0) throw dl;
+        var len = +(r.headers.get("content-length") || 0);
+        if (len > XF_MAX) throw "song too large";
+        return r.arrayBuffer().then(null, function () { throw p.dead ? 0 : dl; });
+      }, function () { throw p.dead ? 0 : dl; });
+    }).then(function (ab) {
       if (p.dead) throw 0;
       if (ab.byteLength > XF_MAX) throw "song too large";
       return brDecode(ab).then(null, function () { throw p.dead ? 0 : "decode failed"; });
@@ -2881,12 +3172,19 @@
     var cloud = window.NeskaCloud, nt = p.nx.t;
     brLoad(p, p.from, p.src, false).then(function (b) {
       p.out = b;
-      if (cloud && cloud.needsSrc(nt)) return Promise.resolve(cloud.resolve(nt)).then(null, function () { throw p.dead ? 0 : "couldn't download next song"; }); // the signed URL the element will use
-    }).then(function () {
+      return offBlob(nt);
+    }).then(function (ob) {
       if (p.dead) throw 0;
-      if (!nt.src) throw "couldn't download next song";
-      p.nxSrc = nt.src;
-      return brLoad(p, nt, nt.src, true);
+      if (ob) { p.nxBlob = ob; return brLoad(p, nt, null, true, ob); } // the element gets a blob URL of it at the hand-off
+      var signing = cloud && cloud.needsSrc(nt)
+        ? Promise.resolve(cloud.resolve(nt)).then(null, function () { throw p.dead ? 0 : "couldn't download next song"; }) // the signed URL the element will use
+        : Promise.resolve();
+      return signing.then(function () {
+        if (p.dead) throw 0;
+        if (!nt.src) throw "couldn't download next song";
+        p.nxSrc = nt.src;
+        return brLoad(p, nt, nt.src, true, null);
+      });
     }).then(function (b) { p.inn = b; }, function (e) {
       p.failed = true; p.out = p.inn = null;
       p.why = typeof e === "string" ? e : (p.dead ? null : "couldn't download next song");
@@ -2937,7 +3235,7 @@
     var s = rate, ctx = bridgeCtx, off = (audio.currentTime || 0) + 0.05 * s; // off: song time; T: real seconds
     var T = Math.min(xfSec, rem, (p.out.duration - off) / s);
     if (!(T >= 1)) { brSkip("not enough time left in the song"); return; }
-    var b = { rate: s, nx: p.nx, nxSrc: p.nxSrc, outBuf: p.out, inBuf: p.inn, srcs: [], nodes: [], timers: [], mid: false, back: false, live: true, at: null };
+    var b = { rate: s, nx: p.nx, nxSrc: p.nxSrc, nxBlob: p.nxBlob || null, outBuf: p.out, inBuf: p.inn, srcs: [], nodes: [], timers: [], mid: false, back: false, live: true, at: null };
     try {
       var t0 = ctx.currentTime, tF = t0 + 0.02, N = 64, cosC = new Float32Array(N), sinC = new Float32Array(N);
       for (var i = 0; i < N; i++) { var a = i / (N - 1) * Math.PI / 2; cosC[i] = Math.cos(a); sinC[i] = Math.sin(a); }
@@ -2989,7 +3287,7 @@
     if (b.back) { if (now) brSilence(b); return; }
     brClear(b); b.back = true;
     if (now) brSilence(b);
-    audio.src = b.nxSrc || b.nx.t.src; audio.load(); applyRate();
+    audio.src = brHandSrc(b); audio.load(); applyRate();
     b.onMeta = function () { // start the element where the buffer is, a little ahead
       if (br !== b) return;
       applyRate(); // same speed as the bridge, pitch preserved
@@ -3033,6 +3331,15 @@
     } catch (e) { brKill(b); }
   }
   function brClear(b) { b.timers.forEach(clearTimeout); b.timers = []; }
+  function brHandSrc(b) { // the src the element takes the incoming song on: its offline copy as a blob URL, or the network URL
+    var old = offURL, src;
+    if (b.nxBlob) {
+      if (!b.nxURL) b.nxURL = URL.createObjectURL(b.nxBlob);
+      offURL = src = b.nxURL; // load() revokes it later; a playback error falls back to the network
+    } else { offURL = null; src = b.nxSrc || b.nx.t.src; }
+    if (old && old !== offURL) setTimeout(function () { try { URL.revokeObjectURL(old); } catch (e) {} }, 0); // the outgoing song's copy
+    return src;
+  }
   function brKill(b) { // disconnect every node and let the buffers go
     b.srcs.forEach(function (s) { try { s.stop(); } catch (e) {} });
     b.nodes.forEach(function (n) { try { n.disconnect(); } catch (e) {} });
@@ -3056,9 +3363,9 @@
   }
   function brCancel(play, at) { // a manual action: the element takes the song on screen back at once
     var b = br; if (!b) return;
-    var p = at != null ? at : brPos(), mid = b.mid, back = b.back, src = b.nxSrc || b.nx.t.src;
+    var p = at != null ? at : brPos(), mid = b.mid, back = b.back;
     brSilence(b); brDone(b); brRelease();
-    if (mid && !back) { audio.src = src; audio.load(); applyRate(); }
+    if (mid && !back) { audio.src = brHandSrc(b); audio.load(); applyRate(); }
     brSeekEl(p);
     if (play) start(); else { audio.pause(); setLoading(false); }
     syncPlaying(); updateTime();
@@ -3165,13 +3472,20 @@
   }
   function pmFetchDecode(t, src, signal) {
     try {
-      if (!src) return Promise.reject(new Error("no src"));
       if (t && t.blob && t.blob.size > XF_MAX) return Promise.reject(new Error("too big"));
-      return fetch(src, signal ? { signal: signal } : {}).then(function (r) {
-        if (!r.ok && r.status !== 0) throw new Error("fetch " + r.status);
-        var len = +(r.headers.get("content-length") || 0);
-        if (len > XF_MAX) throw new Error("too big");
-        return r.arrayBuffer();
+      return offBlob(t).then(function (ob) {
+        if (signal && signal.aborted) throw new Error("aborted");
+        if (ob) { // saved offline: the stored copy, no network
+          if (ob.size > XF_MAX) throw new Error("too big");
+          return blobBuf(ob);
+        }
+        if (!src) throw new Error("no src");
+        return fetch(src, signal ? { signal: signal } : {}).then(function (r) {
+          if (!r.ok && r.status !== 0) throw new Error("fetch " + r.status);
+          var len = +(r.headers.get("content-length") || 0);
+          if (len > XF_MAX) throw new Error("too big");
+          return r.arrayBuffer();
+        });
       }).then(function (ab) {
         if (ab.byteLength > XF_MAX) throw new Error("too big");
         return pmDecode(ab);
@@ -3281,7 +3595,7 @@
       else if (repeat === "all") { np = 0; idx = order[0]; }
       else break;
       var t = idx > -1 ? tracks[idx] : null;
-      if (!t || idx === cur || t.supported === false || t.pending || list.some(function (x) { return x.t === t; })) break;
+      if (!t || idx === cur || t.supported === false || t.pending || blocked(t) || list.some(function (x) { return x.t === t; })) break;
       list.push({ t: t, p: np });
       p = np;
     }
@@ -3313,7 +3627,8 @@
       var own = k === 0 && job.src; // the song already on the element
       chain = chain.then(function () {
         live();
-        if (!own && cloud && cloud.needsSrc(x.t)) return cloud.resolve(x.t);
+        var off = window.NeskaOffline, saved = off && x.t.cloudId && off.has(x.t.cloudId);
+        if (!own && !saved && cloud && cloud.needsSrc(x.t)) return cloud.resolve(x.t); // a song saved offline needs no URL
       }).then(function () {
         live();
         return pmFetchDecode(x.t, own ? job.src : x.t.src, signal);
@@ -3712,6 +4027,7 @@
     playQueue: function (ts, at, shuf) {
       var s = tracks.indexOf(ts[at || 0]);
       if (s < 0) return;
+      if (blocked(tracks[s])) { toast("Not saved offline"); return false; }
       brUnlock();
       brCancel(wantsPlay);
       if (shuf != null) {
@@ -3733,7 +4049,10 @@
     time: function () { return curTime(); }, // the song's own position, also inside a pre-mix
     dur: function () { return curDur(); },
     seek: function (t) { seekTo(t); updateTime(); updatePositionState(); }, // also ends a running crossfade cleanly
-    tracks: function () { return tracks; }
+    tracks: function () { return tracks; },
+    isLoading: function () { return loading; }, // a song asked for is loading or buffering (event: neska-loading)
+    isBlocked: null // set by the cloud script: true when offline and the song has no offline copy
+
   };
 })();
     </script>
@@ -3771,7 +4090,7 @@
         if (!r.ok) throw new Error(errText(j, "Request failed (" + r.status + ")."));
         return j || {};
       });
-    }, function () { throw new Error("Can't reach the server. Check your connection."); });
+    }, function () { var e = new Error("Can't reach the server. Check your connection."); e.offline = true; throw e; });
   }
   function setSession(j) {
     if (!j || !j.access_token) throw new Error("Sign-in didn't return a session.");
@@ -3908,30 +4227,77 @@
     first.reverse().forEach(function (j) { BG.run(j.run, true); });
   }
 
-  function loadLibrary() {
+  function rowTrack(r, cached) {
+    var t = P.makeTrack(r.title || "Untitled", r.artist || "My files", null, false);
+    t.duration = r.duration ? +r.duration : null;
+    t.cloudId = r.id; t.path = r.path; t.mime = r.mime || "";
+    t.supported = t.mime ? P.canPlay(t.mime) : true;
+    t.fromCloud = true;
+    if (cached) t.fromCache = true; // built from the saved copy; refreshed by the next server load
+    t.createdAt = Date.parse(r.created_at) || t.createdAt;
+    t.lastPlayed = Date.parse(r.last_played_at) || 0;
+    t.playCount = +r.play_count || 0;
+    t.lyrics = typeof r.lyrics === "string" && r.lyrics.trim() ? r.lyrics : null;
+    if (r.cover_path) t.coverPath = r.cover_path; // signed and loaded later, by the background queue
+    return t;
+  }
+  /* add the rows not in the library yet; returns the new tracks */
+  function addRows(rows, cached) {
+    var have = {};
+    P.tracks().forEach(function (t) { if (t.cloudId) have[t.cloudId] = true; });
+    var fresh = rows.filter(function (r) { return r && r.id && !have[r.id]; }).map(function (r) { return rowTrack(r, cached); });
+    if (!cached) signBatch(fresh); // every song URL in one round trip, before anything can ask for one
+    P.addTracks(fresh);
+    if (!cached) queueCovers(fresh.filter(function (t) { return t.coverPath; }));
+    return fresh;
+  }
+  /* the library from the saved copy, when offline or the server can't be reached */
+  function loadFromCache(uid) {
+    var rows = libRead(uid); if (!rows) return false;
+    libOffline = true;
+    addRows(rows, true);
+    offlineSync();
+    return true;
+  }
+  function loadLibrary(quiet) { // quiet: a reload on reconnecting, no song-count toast
+    quiet = quiet === true;
+    var uid = S && S.user ? S.user.id : null;
+    if (navigator.onLine === false) {
+      if (loadFromCache(uid)) P.toast("You're offline. Showing your saved library.");
+      else P.toast("You're offline. Your songs load when you're back online.", true);
+      return Promise.resolve();
+    }
     return api("/rest/v1/tracks?select=*&order=created_at.asc").then(function (rows) {
       rows = Array.isArray(rows) ? rows : [];
-      var have = {};
-      P.tracks().forEach(function (t) { if (t.cloudId) have[t.cloudId] = true; });
-      var fresh = rows.filter(function (r) { return r && r.id && !have[r.id]; }).map(function (r) {
-        var t = P.makeTrack(r.title || "Untitled", r.artist || "My files", null, false);
-        t.duration = r.duration ? +r.duration : null;
-        t.cloudId = r.id; t.path = r.path; t.mime = r.mime || "";
-        t.supported = t.mime ? P.canPlay(t.mime) : true;
-        t.fromCloud = true;
-        t.createdAt = Date.parse(r.created_at) || t.createdAt;
-        t.lastPlayed = Date.parse(r.last_played_at) || 0;
-        t.playCount = +r.play_count || 0;
-        t.lyrics = typeof r.lyrics === "string" && r.lyrics.trim() ? r.lyrics : null;
-        if (r.cover_path) t.coverPath = r.cover_path; // signed and loaded later, by the background queue
-        return t;
+      libSave(rows);
+      var wasCached = libOffline, by = {};
+      libOffline = false;
+      rows.forEach(function (r) { if (r && r.id) by[r.id] = r; });
+      // songs shown from the saved copy: drop the ones gone from the account, refresh the rest
+      if (P.tracks().some(function (t) { return t.fromCache && !by[t.cloudId]; })) P.removeWhere(function (t) { return !!(t.fromCache && !by[t.cloudId]); });
+      var covers = [];
+      P.tracks().forEach(function (t) {
+        if (!t.fromCache) return;
+        var r = by[t.cloudId]; t.fromCache = false;
+        if (!r) return;
+        t.title = r.title || t.title; t.artist = r.artist || t.artist; t.path = r.path; t.mime = r.mime || t.mime;
+        t.lastPlayed = Math.max(t.lastPlayed || 0, Date.parse(r.last_played_at) || 0);
+        t.playCount = Math.max(t.playCount || 0, +r.play_count || 0);
+        t.lyrics = typeof r.lyrics === "string" && r.lyrics.trim() ? r.lyrics : t.lyrics;
+        t.coverPath = r.cover_path || null;
+        if (t.coverPath && !t.coverImg) covers.push(t);
       });
-      signBatch(fresh); // every song URL in one round trip, before anything can ask for one
-      P.addTracks(fresh);
-      queueCovers(fresh.filter(function (t) { return t.coverPath; }));
-      if (rows.length) P.toast(rows.length === 1 ? "1 song from your account" : rows.length + " songs from your account");
+      signBatch(P.tracks().filter(function (t) { return !!t.cloudId; }));
+      queueCovers(covers);
+      if (wasCached) P.buildList(); // titles may have changed
+      addRows(rows, false);
+      offlineSync();
+      if (rows.length && !wasCached && !quiet) P.toast(rows.length === 1 ? "1 song from your account" : rows.length + " songs from your account");
+      else if (wasCached) P.toast("Back online.");
     }).catch(function (e) {
-      if (S) P.toast("Couldn't load your songs. " + (e && e.message ? e.message : ""), true);
+      if (!S) return;
+      if (loadFromCache(uid)) P.toast("Couldn't reach the server. Showing your saved library.", true);
+      else P.toast("Couldn't load your songs. " + (e && e.message ? e.message : ""), true);
     });
   }
 
@@ -4079,15 +4445,15 @@
 
   /* ---------- Account chip ---------- */
   function renderChip() {
-    var chip = $("acct");
+    var chip = $("acct"), me = S || offS; // offS: signed in, but offline since opening
     chip.hidden = false;
-    chip.classList.toggle("is-guest", !S);
-    $("acctEmail").textContent = S && S.user ? S.user.email || "" : "";
-    $("acctBtn").textContent = S ? "Sign out" : "Sign in";
-    $("acctBtn").setAttribute("aria-label", S ? "Sign out" + (S.user && S.user.email ? " of " + S.user.email : "") : "Sign in to save songs");
-    var em = S && S.user ? S.user.email || "" : "";
+    chip.classList.toggle("is-guest", !me);
+    $("acctEmail").textContent = me && me.user ? me.user.email || "" : "";
+    $("acctBtn").textContent = me ? "Sign out" : "Sign in";
+    $("acctBtn").setAttribute("aria-label", me ? "Sign out" + (me.user && me.user.email ? " of " + me.user.email : "") : "Sign in to save songs");
+    var em = me && me.user ? me.user.email || "" : "";
     var av = $("acctAvatar");
-    if (S) { av.textContent = em ? em.charAt(0) : "•"; av.setAttribute("aria-label", "Account" + (em ? ", " + em : "")); }
+    if (me) { av.textContent = em ? em.charAt(0) : "•"; av.setAttribute("aria-label", "Account" + (em ? ", " + em : "")); }
     else { av.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 19.5a7 7 0 0 1 14 0"/></svg>'; av.setAttribute("aria-label", "Account, not signed in"); }
     placeAcct();
   }
@@ -4105,6 +4471,7 @@
       for (var i = 0; i < rows.length && !b; i++) if (!rows[i].closest("[hidden]")) b = rows[i];
     }
     if (b && chip.parentNode !== b) { closeAcctPop(false); b.appendChild(chip); }
+    placeOffChip();
   }
   $("acctAvatar").addEventListener("click", function () {
     var pop = $("acctPop"), open = pop.hidden;
@@ -4134,14 +4501,16 @@
     clearSavedSession();
     if (curXhr) { try { curXhr.abort(); } catch (e) {} }
     queue = [];
-    S = null; refreshing = null;
+    S = null; refreshing = null; offS = null; libOffline = false; plLoaded = false;
+    allStop(); libClear(); playsClear(); offlineSync();
+    if (window.NeskaOffline) window.NeskaOffline.clear().catch(function () {});
     P.stop();
     P.removeWhere(function (t) { return !!(t.fromCloud || t.cloudId); });
     endQueue(); setCredit(); resetPlaylists(); authChanged();
     setMode("in"); email.value = ""; pass.value = "";
     showOverlay();
   }
-  $("acctBtn").addEventListener("click", function () { closeAcctPop(false); if (S) signOut(); else showOverlay(); });
+  $("acctBtn").addEventListener("click", function () { closeAcctPop(false); if (S || offS) signOut(); else showOverlay(); });
 
   /* ---------- Remove from library ---------- */
   var appEl = document.querySelector(".x-app") || document.body;
@@ -4222,6 +4591,7 @@
     'M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M15.5 9.5h.01"/></svg>Change cover</button>' +
     '<button type="button" role="menuitem" data-act="uncover">' + SVG +
     'M4 5h16v14H4zM9 10l6 6M15 10l-6 6"/></svg>Remove cover</button>' +
+    '<button type="button" role="menuitem" data-act="offline"></button>' +
     '<button type="button" role="menuitem" data-act="remove">' + SVG +
     'M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>' +
     'Remove from library</button>';
@@ -4236,11 +4606,37 @@
     if (t) removeCover(t);
   });
 
+  /* ---------- Offline copies ---------- */
+  var OFF_ICON = { save: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7.5v8M8.5 12l3.5 3.5 3.5-3.5", unsave: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM9 9l6 6M15 9l-6 6" };
+  function offlineSaved(t) { var off = window.NeskaOffline; return !!(off && t && t.cloudId && off.has(t.cloudId)); }
+  function canOffline(t) { var off = window.NeskaOffline; return !!(off && t && t.cloudId && !off.busy(t.cloudId)); }
+  function offlineLabel(t) { return offlineSaved(t) ? "Remove offline copy" : "Save offline"; }
+  function toggleOffline(t) {
+    var off = window.NeskaOffline; if (!canOffline(t)) return;
+    if (off.has(t.cloudId)) {
+      off.remove(t.cloudId).then(function () { P.toast("Removed offline copy"); }, function () { P.toast("Couldn't remove the offline copy of " + t.title, true); });
+      return;
+    }
+    P.toast("Saving " + t.title + " offline…", false, true);
+    off.save(t).then(function () { P.toast("Saved offline"); }, function (e) {
+      if (e && e.message === "cancelled") return;
+      P.toast(e && e.name === "QuotaExceededError" ? "Your phone's storage for Neska is full." : "Couldn't save " + t.title + " offline", true);
+    });
+  }
+  var offItem = menu.querySelector('[data-act="offline"]');
+  offItem.addEventListener("click", function () {
+    var t = menuTrack; closeMenu(true);
+    if (t) toggleOffline(t);
+  });
+
   function openMenu(btn, t) {
     closeMenu(false);
     menuTrack = t; menuBtn = btn;
     btn.setAttribute("aria-expanded", "true");
     uncoverItem.hidden = !t.coverURL;
+    offItem.hidden = !canOffline(t);
+    offItem.innerHTML = SVG + OFF_ICON[offlineSaved(t) ? "unsave" : "save"] + '"/></svg>';
+    offItem.appendChild(document.createTextNode(offlineLabel(t)));
     menu.hidden = false;
     var r = btn.getBoundingClientRect(), mw = menu.offsetWidth, mh = menu.offsetHeight;
     var left = Math.max(8, Math.min(window.innerWidth - mw - 8, r.right - mw));
@@ -4353,6 +4749,7 @@
     var qi = queue.indexOf(t);
     if (qi > -1) { queue.splice(qi, 1); queueTotal = Math.max(0, queueTotal - 1); }
     t.removed = true;
+    if (t.cloudId && window.NeskaOffline) window.NeskaOffline.remove(t.cloudId).catch(function () {});
     P.removeWhere(function (x) { return x === t; });
     if (isCur) {
       var j = nextT ? P.tracks().indexOf(nextT) : -1;
@@ -4406,6 +4803,7 @@
     openPl.items.forEach(function (t, k) {
       if (all.indexOf(t) < 0) return;
       var li = document.createElement("li"), b = rowBtn(canvasFor(null, t), t.title, t.artist);
+      if (window.NeskaOffline) b.appendChild(window.NeskaOffline.badge(t));
       b.dataset.at = n++; li.appendChild(b);
       var m = document.createElement("button");
       m.type = "button"; m.className = "x-more"; m.textContent = "⋯"; m.dataset.k = k;
@@ -4435,10 +4833,20 @@
     var b = e.target.closest(".x-row"); if (b) openPlaylist(playlists[+b.dataset.pl]);
   });
   $("plSongs").addEventListener("click", function (e) {
-    var b = e.target.closest(".x-row"); if (b && openPl) { P.playQueue(live(openPl), +b.dataset.at); plPlayed(openPl); P.showView("now"); }
+    var b = e.target.closest(".x-row"); if (b && openPl) { if (P.playQueue(live(openPl), +b.dataset.at) === false) return; plPlayed(openPl); P.showView("now"); }
   });
-  $("plPlay").addEventListener("click", function () { var it = live(openPl); if (it.length) { P.playQueue(it, 0, false); plPlayed(openPl); } });
-  $("plShuffle").addEventListener("click", function () { var it = live(openPl); if (it.length) { P.playQueue(it, Math.floor(Math.random() * it.length), true); plPlayed(openPl); } });
+  // offline: start on a song that has a copy
+  function playableAt(it, at) {
+    if (!isBlocked(it[at])) return at;
+    var ok = it.map(function (t, i) { return isBlocked(t) ? -1 : i; }).filter(function (i) { return i > -1; });
+    return ok.length ? ok[Math.floor(Math.random() * ok.length)] : at;
+  }
+  $("plPlay").addEventListener("click", function () {
+    var it = live(openPl); if (!it.length) return;
+    var at = 0; while (at < it.length - 1 && isBlocked(it[at])) at++;
+    if (P.playQueue(it, at, false) !== false) plPlayed(openPl);
+  });
+  $("plShuffle").addEventListener("click", function () { var it = live(openPl); if (it.length && P.playQueue(it, playableAt(it, Math.floor(Math.random() * it.length)), true) !== false) plPlayed(openPl); });
   // playback started from a playlist: remember when, and save it quietly
   function plPlayed(pl) {
     pl.lastPlayed = Date.now();
@@ -4450,7 +4858,7 @@
   new MutationObserver(renderPlaylists).observe(listEl, { childList: true });
 
   function loadPlaylists() {
-    if (!S) return;
+    if (!S || navigator.onLine === false) return; // offline: loaded when back online
     return Promise.all([
       api("/rest/v1/playlists?select=*&order=created_at"),
       api("/rest/v1/playlist_tracks?select=*&order=position")
@@ -4467,6 +4875,7 @@
         if (pl && t) { pl.items.push(t); pl.pos.push(+r.position || 0); }
       });
       playlists = fresh.concat(playlists.filter(function (p) { return !p.cloud; }));
+      plLoaded = true;
       renderPlaylists();
     }).catch(function () { P.toast("Couldn't load your playlists.", true); });
   }
@@ -4582,7 +4991,9 @@
     del: "M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3",
     remove: "M5 12h14",
     up: "M12 19V5M6 11l6-6 6 6",
-    down: "M12 5v14M6 13l6 6 6-6"
+    down: "M12 5v14M6 13l6 6 6-6",
+    offline: OFF_ICON.save,
+    unoffline: OFF_ICON.unsave
   };
   function openPlMenu(btn, items) {
     closePlMenu(false); closeMenu(false);
@@ -4625,6 +5036,8 @@
     var acts = [["remove", "Remove from playlist"]];
     if (prev > -1) acts.push(["up", "Move up"]);
     if (next > -1) acts.push(["down", "Move down"]);
+    var st = openPl.items[k];
+    if (canOffline(st)) acts.push([offlineSaved(st) ? "unoffline" : "offline", offlineLabel(st)]);
     plMenuPl = openPl;
     openPlMenu(b, acts);
     plMenuSong = { k: k, t: openPl.items[k], prev: prev, next: next };
@@ -4653,6 +5066,7 @@
     else if (song && act === "remove") removeSong(pl, song.t);
     else if (song && act === "up" && song.prev > -1) swapSongs(pl, song.k, song.prev, true);
     else if (song && act === "down" && song.next > -1) swapSongs(pl, song.k, song.next, false);
+    else if (song && (act === "offline" || act === "unoffline")) toggleOffline(song.t);
   });
 
   function plPath(pl) { return "/rest/v1/playlists?id=eq." + encodeURIComponent(pl.id); }
@@ -4777,11 +5191,12 @@
 
   /* ---------- Play counts to the cloud ---------- */
   function trackPlayed(t) {
-    if (S && t.cloudId) {
-      api("/rest/v1/tracks?id=eq." + encodeURIComponent(t.cloudId), {
-        method: "PATCH", headers: { Prefer: "return=minimal" },
-        body: { last_played_at: new Date(t.lastPlayed).toISOString(), play_count: t.playCount }
-      }).catch(function () {});
+    if (t.cloudId && (S || offS)) {
+      var body = { last_played_at: new Date(t.lastPlayed).toISOString(), play_count: t.playCount };
+      if (!S || navigator.onLine === false) playsQueue(t.cloudId, body); // offline: sent when back online
+      else api("/rest/v1/tracks?id=eq." + encodeURIComponent(t.cloudId), {
+        method: "PATCH", headers: { Prefer: "return=minimal" }, body: body
+      }).catch(function (e) { if (!(e && e.status >= 400 && e.status < 500)) playsQueue(t.cloudId, body); }); // network failure: retry later
     }
     homeChanged();
   }
@@ -4838,7 +5253,7 @@
     var key = b.closest(".x-shelf").dataset.key, items = homeLists[key], it = items && items[+b.dataset.at];
     if (!it) return;
     if (key === "pls") { P.showView("pl"); openPlaylist(it); }
-    else { P.playQueue(items, +b.dataset.at); P.showView("now"); }
+    else if (P.playQueue(items, +b.dataset.at) !== false) P.showView("now");
   });
   $("tab-home").addEventListener("click", function () { if (homeDirty) renderHome(); else $("homeHello").textContent = greet(); });
 
@@ -4904,7 +5319,7 @@
   q.addEventListener("change", remember);
   $("srSongList").addEventListener("click", function (e) {
     var b = e.target.closest(".x-row"); if (!b) return;
-    remember(); P.playQueue(srShown, +b.dataset.at); P.showView("now");
+    remember(); if (P.playQueue(srShown, +b.dataset.at) !== false) P.showView("now");
   });
   $("srPlList").addEventListener("click", function (e) {
     var b = e.target.closest(".x-row"), pl = b && srPlShown[+b.dataset.pl]; if (!pl) return;
@@ -4972,6 +5387,295 @@
       return api("/storage/v1/object/songs/" + encPath(p), { method: "POST", headers: { "x-upsert": "true" }, body: list.map(ytRow) });
     }
   };
+  /* ===== Offline songs, part 2: offline library, Save all, settings row, queued play counts ===== */
+  var offS = null;          // the remembered sign-in while offline since opening (S stays null until back online)
+  var libOffline = false;   // the library on screen was built from the saved copy
+  var plLoaded = false;     // the account's playlists have loaded this session
+  var LIB_KEY = "neska.libcache", PLAYS_KEY = "neska.playq";
+  var LIB_FIELDS = ["id", "title", "artist", "duration", "path", "mime", "cover_path", "created_at", "play_count", "last_played_at"];
+
+  /* the compact library copy in localStorage */
+  function libSave(rows) {
+    try {
+      if (!S || !S.user || !S.user.id) return;
+      var slim = rows.filter(function (r) { return r && r.id; }).map(function (r) {
+        var o = {}; LIB_FIELDS.forEach(function (k) { if (r[k] != null) o[k] = r[k]; }); return o;
+      });
+      window.localStorage.setItem(LIB_KEY, JSON.stringify({ uid: S.user.id, at: Date.now(), rows: slim }));
+    } catch (e) {}
+  }
+  function libRead(uid) {
+    try {
+      var v = JSON.parse(window.localStorage.getItem(LIB_KEY) || "null");
+      if (!v || !Array.isArray(v.rows) || !v.rows.length) return null;
+      if (uid && v.uid && v.uid !== uid) return null;
+      return v.rows;
+    } catch (e) { return null; }
+  }
+  function libClear() { try { window.localStorage.removeItem(LIB_KEY); } catch (e) {} }
+
+  /* play counts that couldn't be sent: the latest per song, retried quietly when back online */
+  function playsRead() {
+    try { var v = JSON.parse(window.localStorage.getItem(PLAYS_KEY) || "null"); return v && v.items && typeof v.items === "object" ? v : null; } catch (e) { return null; }
+  }
+  function playsUid() { var me = S || offS; return me && me.user ? me.user.id || null : null; }
+  function playsQueue(id, body) {
+    try {
+      var v = playsRead(), uid = playsUid();
+      if (!v || (v.uid && uid && v.uid !== uid)) v = { uid: uid, items: {} };
+      v.items[id] = body;
+      window.localStorage.setItem(PLAYS_KEY, JSON.stringify(v));
+    } catch (e) {}
+  }
+  function playsClear() { try { window.localStorage.removeItem(PLAYS_KEY); } catch (e) {} }
+  var flushing = null;
+  function playsFlush() {
+    if (flushing) return flushing;
+    var v = playsRead();
+    if (!S || !v || navigator.onLine === false) return Promise.resolve();
+    if (v.uid && S.user && S.user.id && v.uid !== S.user.id) { playsClear(); return Promise.resolve(); }
+    var ids = Object.keys(v.items);
+    if (!ids.length) { playsClear(); return Promise.resolve(); }
+    flushing = Promise.all(ids.map(function (id) {
+      var body = v.items[id];
+      return api("/rest/v1/tracks?id=eq." + encodeURIComponent(id), { method: "PATCH", headers: { Prefer: "return=minimal" }, body: body })
+        .then(function () { return { id: id, body: body, done: true }; },
+          function (e) { return { id: id, body: body, done: !!(e && e.status >= 400 && e.status < 500) }; }); // 4xx: the song is gone, drop it
+    })).then(function (res) {
+      var now = playsRead(); if (!now) return;
+      res.forEach(function (r) { // keep any newer play queued meanwhile
+        var q = now.items[r.id];
+        if (r.done && q && q.play_count === r.body.play_count && q.last_played_at === r.body.last_played_at) delete now.items[r.id];
+      });
+      try { if (Object.keys(now.items).length) window.localStorage.setItem(PLAYS_KEY, JSON.stringify(now)); else playsClear(); } catch (e) {}
+    }).then(function () { flushing = null; }, function () { flushing = null; });
+    return flushing;
+  }
+
+  /* offline: songs without a copy can't play */
+  function offMode() { return navigator.onLine === false || libOffline || (!!offS && !S); }
+  function isBlocked(t) {
+    if (!t || !t.cloudId || t.blob || !offMode()) return false;
+    var off = window.NeskaOffline;
+    return !(off && off.has(t.cloudId));
+  }
+  P.isBlocked = isBlocked;
+  function dimRows() {
+    var all = P.tracks(), byCloud = {}, byId = {};
+    all.forEach(function (t) { byId[t.id] = t; if (t.cloudId) byCloud[t.cloudId] = t; });
+    [].forEach.call(listEl.children, function (li) {
+      var b = li.firstChild; if (b && b.classList) b.classList.toggle("x-dim", isBlocked(all[+li.dataset.index]));
+    });
+    [].forEach.call(document.querySelectorAll("#plSongs .x-row, #srSongList .x-row"), function (b) {
+      var s = b.querySelector(".x-off"), c = b.querySelector("canvas[data-tid]");
+      var t = s && s.dataset.cid ? byCloud[s.dataset.cid] : c ? byId[c.dataset.tid] : null;
+      b.classList.toggle("x-dim", isBlocked(t));
+    });
+    [].forEach.call(document.querySelectorAll('#homeRows .x-shelf:not([data-key="pls"]) .x-tile'), function (b) {
+      var c = b.querySelector("canvas[data-tid]");
+      b.classList.toggle("x-dim", isBlocked(c ? byId[c.dataset.tid] : null));
+    });
+  }
+
+  /* the glass "Offline" chip: in the active view's header row on phones, the top bar on desktop */
+  var offChip = document.createElement("span");
+  offChip.className = "x-offchip"; offChip.setAttribute("role", "status"); offChip.hidden = true;
+  offChip.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M3 3l18 18M8.5 8.6A5.5 5.5 0 0 0 7 19h10.5M16.7 16.8A3.5 3.5 0 0 0 17.5 10a5.5 5.5 0 0 0-6.6-4.3"/></svg><span>Offline</span>';
+  function placeOffChip() {
+    if (!offChip) return; // runs once before this part is set up
+    var desk = !!(window.matchMedia && window.matchMedia("(min-width: 900px)").matches), host = null, before = null;
+    if (desk) { host = $("dtop"); before = $("deskSetBtn"); }
+    else {
+      var v = document.querySelector(".x-view.is-active");
+      if (v) { var rows = v.querySelectorAll(".x-brand"); for (var i = 0; i < rows.length && !host; i++) if (!rows[i].closest("[hidden]")) host = rows[i]; }
+      before = host && $("acct").parentNode === host ? $("acct") : null;
+    }
+    if (!host || (offChip.parentNode === host && offChip.nextSibling === before)) return;
+    if (before && before.parentNode !== host) before = null;
+    host.insertBefore(offChip, before);
+  }
+  function offlineSync() {
+    if (!offChip) return;
+    offChip.hidden = !offMode();
+    placeOffChip(); dimRows(); allSync();
+  }
+
+  /* opened offline with a remembered sign-in: the library from its copy */
+  function enterOffline(sv) {
+    offS = sv; hideOverlay();
+    P.showView("home"); renderChip();
+    loadFromCache(sv.user.id);
+    P.toast("You're offline. Showing your saved library.");
+  }
+  /* back online: sign in again if needed, send queued plays, reload the library from the server */
+  var reconnecting = false;
+  function reconnect() {
+    if (reconnecting || navigator.onLine === false) return;
+    var done = function () { reconnecting = false; offlineSync(); };
+    if (offS && !S) {
+      var sv = offS; reconnecting = true;
+      authPost("/auth/v1/token?grant_type=refresh_token", { refresh_token: sv.refresh }).then(function (j) {
+        if (S || offS !== sv) return;
+        offS = null; S = { user: sv.user || null }; setSession(j);
+        renderChip(); setCredit(); authChanged();
+        return playsFlush().then(function () { return loadLibrary(true); }).then(loadPlaylists);
+      }, function (e) {
+        if (e && e.offline) return; // still unreachable: the next online event tries again
+        if (offS === sv) { reconnecting = false; signOut(); } // the remembered sign-in expired
+      }).then(done, done);
+      return;
+    }
+    if (!S) return;
+    reconnecting = true;
+    playsFlush().then(function () { return loadLibrary(true); }).then(function () { if (!plLoaded) return loadPlaylists(); }).then(done, done);
+  }
+
+  /* ---------- Save all offline: one song at a time, paused while a song loads ---------- */
+  var offAll = $("offAll"), offAllTxt = $("offAllTxt"), offAllCap = $("offAllCap"), offAllRow = $("offAllRow");
+  var run = null; // { list, i, ok, total, ac, paused, timer, loadSince }
+  function acctSongs() { return P.tracks().filter(function (t) { return !!t.cloudId && !t.removed; }); }
+  function allSync() {
+    var off = window.NeskaOffline; if (!off || !offAll) return;
+    var songs = S || offS ? acctSongs() : [], left = songs.filter(function (t) { return !off.has(t.cloudId); });
+    offAll.hidden = !run && !(S && left.length);
+    offAllCap.hidden = !!run || !songs.length || left.length > 0;
+    offAllRow.hidden = offAll.hidden && offAllCap.hidden;
+    offAll.classList.toggle("is-running", !!run);
+    if (run) {
+      var n = Math.min(run.i + 1, run.total);
+      offAllTxt.textContent = "Saving " + n + " of " + run.total + "…";
+      offAll.setAttribute("aria-label", "Saving " + n + " of " + run.total + " songs offline. Tap to stop.");
+    } else {
+      offAllTxt.textContent = "Save all offline";
+      offAll.setAttribute("aria-label", "Save all " + left.length + (left.length === 1 ? " song" : " songs") + " offline");
+    }
+  }
+  function allCanRun(r) {
+    if (navigator.onLine === false) return false;
+    if (P.isLoading && P.isLoading()) { // a song is loading: wait until it plays (a spinner stuck 45 s can't hold it forever)
+      if (!r.loadSince) r.loadSince = Date.now();
+      return Date.now() - r.loadSince > 45000;
+    }
+    r.loadSince = 0;
+    return true;
+  }
+  function allStart() {
+    var off = window.NeskaOffline; if (!off || !S || run) return;
+    if (navigator.onLine === false) { P.toast("You're offline. Connect to save songs offline."); return; }
+    var list = acctSongs().filter(function (t) { return !off.has(t.cloudId); });
+    if (!list.length) { allSync(); return; }
+    run = { list: list, i: 0, ok: 0, total: list.length, ac: null, paused: false, timer: 0, loadSince: 0 };
+    allSync(); allStep();
+  }
+  function allStep() {
+    var r = run, off = window.NeskaOffline; if (!r || !off) return;
+    clearTimeout(r.timer);
+    while (r.i < r.total) { // skip songs removed, or saved some other way meanwhile
+      var s = r.list[r.i];
+      if (!s.cloudId || s.removed || P.tracks().indexOf(s) < 0) r.i++;
+      else if (off.has(s.cloudId)) { r.ok++; r.i++; }
+      else break;
+    }
+    if (r.i >= r.total) { allFinish(); return; }
+    if (!S) { allStop(); return; }
+    allSync();
+    if (!allCanRun(r)) { r.timer = setTimeout(allStep, 2000); return; } // the neska-loading event resumes it sooner
+    var t = r.list[r.i], ac = window.AbortController ? new AbortController() : null;
+    r.ac = ac || true; r.paused = false;
+    off.save(t, ac ? { signal: ac.signal } : null).then(function () {
+      if (run !== r) return;
+      r.ac = null; r.paused = false; r.ok++; r.i++; allSync();
+      r.timer = setTimeout(allStep, 200);
+    }, function (e) {
+      if (run !== r) return;
+      r.ac = null;
+      if (r.paused || (e && e.name === "AbortError") || navigator.onLine === false) { // paused for playback or the connection: this song again later
+        r.paused = false; r.timer = setTimeout(allStep, 2000); return;
+      }
+      if (e && e.name === "QuotaExceededError") { allStop(); P.toast("Your phone's storage for Neska is full.", true); return; }
+      if (e && e.message === "cancelled") { allStop(); return; } // offline songs were cleared meanwhile
+      r.i++; allSync(); // skip it; counted in the final toast
+      r.timer = setTimeout(allStep, 200);
+    });
+  }
+  function allPause() { // a song started loading: stop the download now, retry that song once it plays
+    var r = run; if (!r || !r.ac) return;
+    r.paused = true;
+    if (r.ac !== true) { try { r.ac.abort(); } catch (e) {} }
+  }
+  function allResume() { var r = run; if (r && !r.ac) { clearTimeout(r.timer); r.timer = setTimeout(allStep, 1500); } }
+  function allFinish() {
+    var r = run; run = null; allSync();
+    if (r) P.toast("Saved " + r.ok + " of " + r.total + " offline", r.ok < r.total);
+  }
+  function allStop() {
+    var r = run; if (!r) return;
+    run = null; clearTimeout(r.timer);
+    if (r.ac && r.ac !== true) { try { r.ac.abort(); } catch (e) {} }
+    allSync();
+  }
+  if (offAll) offAll.addEventListener("click", function () {
+    if (run) { var r = run; allStop(); P.toast("Stopped. Saved " + r.ok + " of " + r.total + " offline"); }
+    else allStart();
+  });
+
+  /* ---------- Settings: Offline songs row and Remove all ---------- */
+  function fmtMB(b) { var mb = b / 1048576; return (mb === 0 ? "0" : mb < 10 ? mb.toFixed(1) : String(Math.round(mb))) + " MB"; }
+  function offSummary() {
+    var off = window.NeskaOffline, el = $("offSum"), btn = $("offClear"); if (!el || !btn) return;
+    if (!off) { el.textContent = "Not available in this browser"; btn.disabled = true; return; }
+    off.list().then(function (items) {
+      var n = items.length, bytes = items.reduce(function (s, x) { return s + (x.size || 0); }, 0);
+      el.textContent = n + (n === 1 ? " song" : " songs") + " · " + fmtMB(bytes) + " saved";
+      btn.disabled = !n;
+    }, function () { el.textContent = "Not available in this browser"; btn.disabled = true; });
+  }
+  var offDel = $("offDel"), offDelOk = $("offDelOk"), offDelCancel = $("offDelCancel"), offClearing = false;
+  function openOffDel() {
+    offDelOk.disabled = false; offDelOk.textContent = "Remove";
+    offDel.hidden = false;
+    setTimeout(function () { try { offDelCancel.focus({ preventScroll: true }); } catch (e) {} }, 30);
+  }
+  function closeOffDel() {
+    if (offDel.hidden || offClearing) return;
+    offDel.hidden = true;
+    try { $("offClear").focus({ preventScroll: true }); } catch (e) {}
+  }
+  $("offClear").addEventListener("click", openOffDel);
+  offDelCancel.addEventListener("click", closeOffDel);
+  offDel.addEventListener("click", function (e) { if (e.target === offDel) closeOffDel(); });
+  offDel.addEventListener("keydown", function (e) {
+    e.stopPropagation(); // not the player's shortcuts, not the settings sheet
+    if (e.key === "Escape") { e.preventDefault(); closeOffDel(); }
+    else if (e.key === "Tab") { e.preventDefault(); (document.activeElement === offDelCancel && !offDelOk.disabled ? offDelOk : offDelCancel).focus(); }
+  });
+  offDelOk.addEventListener("click", function () {
+    var off = window.NeskaOffline; if (!off || offClearing) return;
+    offClearing = true; offDelOk.disabled = true; offDelOk.textContent = "Removing…";
+    allStop();
+    off.clear().then(function () { P.toast("Removed all offline songs"); }, function () { P.toast("Couldn't remove the offline songs.", true); })
+      .then(function () { offClearing = false; closeOffDel(); offSummary(); offlineSync(); });
+  });
+
+  /* ---------- Wiring ---------- */
+  var dimRaf = 0;
+  function dimSoon() { if (dimRaf) return; dimRaf = requestAnimationFrame(function () { dimRaf = 0; dimRows(); allSync(); }); }
+  if (window.MutationObserver) {
+    var dimObs = new MutationObserver(dimSoon);
+    [listEl, $("plSongs"), $("srSongList")].forEach(function (el) { if (el) dimObs.observe(el, { childList: true }); });
+    if ($("homeRows")) dimObs.observe($("homeRows"), { childList: true, subtree: true });
+    new MutationObserver(function () { if (!$("setSheet").hidden) offSummary(); }).observe($("setSheet"), { attributes: true, attributeFilter: ["hidden"] });
+  }
+  window.addEventListener("neska-offline-change", function () { dimSoon(); if (!$("setSheet").hidden) offSummary(); });
+  window.addEventListener("neska-loading", function (e) { if (e.detail && e.detail.loading) allPause(); else allResume(); });
+  window.addEventListener("online", function () { offlineSync(); reconnect(); allResume(); });
+  window.addEventListener("offline", function () { offlineSync(); allPause(); });
+  window.addEventListener("neska:auth", function () { allSync(); if (S) playsFlush(); });
+  // the server was unreachable while the phone said it was online: try again now and then
+  setInterval(function () { if ((libOffline || offS) && navigator.onLine !== false && !document.hidden) reconnect(); }, 30000);
+  offlineSync();
+
   function authChanged() { try { window.dispatchEvent(new Event("neska:auth")); } catch (e) {} }
   setMode("in");
   var saved = readSavedSession();
@@ -4984,8 +5688,10 @@
       setSession(j);
       P.showView("home"); renderChip(); setCredit(); authChanged();
       return loadLibrary().then(loadPlaylists);
-    }).catch(function () {
+    }).catch(function (e) {
       if (S && S.access) return;
+      // offline with a saved library: show it from the copy, sign in again when back online
+      if (e && e.offline && saved.user && saved.user.id && libRead(saved.user.id)) { S = null; enterOffline(saved); return; }
       S = null;
       clearSavedSession();
       setMode("in");
