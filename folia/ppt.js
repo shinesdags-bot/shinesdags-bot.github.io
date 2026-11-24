@@ -149,7 +149,7 @@ function textHTML(C, sp, chain, k, fontScale, defColor, hint, strong) {
     const px = pt => (pt * EMU_PT * k * fontScale).toFixed(2) + 'px';
     let inner = '', ri = 0;
     for (const r of p.children) {
-      if (r.localName === 'r' || r.localName === 'fld') { const rix = r.localName === 'r' ? ri++ : 0; const st = runStyle(C, A(r, 'rPr'), nodes, defColor, strong); const t = A(r, 't')?.textContent || '';
+      if (r.localName === 'r' || r.localName === 'fld') { const rix = r.localName === 'r' ? ri++ : 0; const st = runStyle(C, A(r, 'rPr'), nodes, defColor, strong); const t = A(r, 't')?.textContent || ''; if (!t) continue;
         inner += `<span data-ri="${pi}.${rix}" style="font-size:${px(st.sz)};${st.b ? 'font-weight:700;' : ''}${st.i ? 'font-style:italic;' : ''}${st.u ? 'text-decoration:underline;' : ''}color:${st.color};font-family:${fontStack(st.face).replace(/"/g, "'")}${st.base ? ';vertical-align:' + (+st.base > 0 ? 'super' : 'sub') : ''}">${esc(t)}</span>`; }
       else if (r.localName === 'br') inner += '<br>';
     }
@@ -390,7 +390,7 @@ export async function newPpt() {
   ctx.busy(true, 'Starting…');
   try { await libs(); const r = await fetch('vendor/blank.pptx'); openPackage(new Uint8Array(await r.arrayBuffer()));
     // empty the placeholders so they show "Click to add…" hints
-    for (const t of desc(doc(pk.slides[0]).documentElement, NS.a, 't')) t.textContent = ''; touch(pk.slides[0]);
+    for (const r of desc(doc(pk.slides[0]).documentElement, NS.a, 'r')) r.remove(); touch(pk.slides[0]);
     show('Untitled.pptx', Math.random().toString(36).slice(2, 10)); dirty = true; await autosave(); }
   catch (e) { console.error(e); ctx.toast("Couldn't start a presentation."); }
   ctx.busy(false);
