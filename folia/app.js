@@ -478,3 +478,5 @@ initPpt({ toast, busy, deliver, toPNG, touchRecent, home: renderRecent });
 if ('requestIdleCallback' in window) requestIdleCallback(() => wordLibs().then(excelLibs).catch(() => {}), { timeout: 8000 });
 renderRecent();
 window.__folia = { get pages() { return pages; }, buildPdf, openBuffers, setTool };
+// ?open=test/x.pdf opens a file shipped with Folia (same-origin paths only; used for testing)
+{ const o = new URLSearchParams(location.search).get('open'); if (o && /^[\w\-\/]+\.(pdf|docx|xlsx|pptx|csv)$/i.test(o) && !o.startsWith('/') && !o.includes('..')) fetch(o).then(r => r.ok ? r.blob() : Promise.reject()).then(b => openFiles([new File([b], o.split('/').pop(), { type: b.type })])).catch(() => toast("Couldn't open that file.")); }
