@@ -1748,6 +1748,14 @@
                   <span class="x-set__txt">Mono<small>iPhone also has system Mono Audio in Settings &gt; Accessibility &gt; Audio &amp; Visual.</small></span><span class="x-switch" aria-hidden="true"></span>
                 </button>
               </div>
+              <p class="x-set__label">Spatial sound</p>
+              <div class="x-eq-chips" id="spChips" role="radiogroup" aria-label="Spatial sound">
+                <button type="button" role="radio" data-s="off">Off</button>
+                <button type="button" role="radio" data-s="wide">Wide</button>
+                <button type="button" role="radio" data-s="room">3D Room</button>
+                <button type="button" role="radio" data-s="8d">8D</button>
+              </div>
+              <p class="x-studio-off">Best with headphones. Works on your own songs. For streams too, use AirPods: Control Center, press and hold volume, Spatialize Stereo.</p>
             </div>
             <div class="x-confirm__btns">
               <button type="button" class="x-pl-ok" id="setDone">Done</button>
@@ -3131,7 +3139,7 @@
     treble: [0, 0, 0, 0, 0, 0, 2, 4, 6, 7],
     night:  [-5, -3, -1, 0, 0, 0, 0, -1, -3, -5]
   };
-  var studio = { on: false, preset: "flat", bands: EQ_P.flat.slice(), custom: EQ_P.flat.slice(), pre: 0, mono: false };
+  var studio = { on: false, preset: "flat", bands: EQ_P.flat.slice(), custom: EQ_P.flat.slice(), pre: 0, mono: false, sp: "off" };
   var eng = null;
   function engCreate() {
     var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null;
@@ -3152,8 +3160,37 @@
     split.connect(gl, 0); split.connect(gr, 1);
     [gl, gr].forEach(function (g) { g.connect(merge, 0, 0); g.connect(merge, 0, 1); });
     merge.connect(mono);
-    stereo.connect(ctx.destination); mono.connect(ctx.destination);
-    return { ctx: ctx, pre: pre, filters: filters, stereo: stereo, mono: mono, els: [] };
+    // spatial stage: bus -> dry | wide (mid/side matrix) | 8D (rotating HRTF) | room (convolver)
+    var bus = ctx.createGain(); stereo.connect(bus); mono.connect(bus);
+    var dry = ctx.createGain(); bus.connect(dry); dry.connect(ctx.destination);
+    var wide = ctx.createGain(); wide.gain.value = 0;
+    var wIn = ctx.createGain(); wIn.channelCount = 2; wIn.channelCountMode = "explicit"; wIn.channelInterpretation = "speakers";
+    var ws = ctx.createChannelSplitter(2), wm = ctx.createChannelMerger(2), K = 1.8;
+    var a = 0.5 * (1 + K), b = 0.5 * (1 - K);
+    [[0, 0, a], [1, 0, b], [0, 1, b], [1, 1, a]].forEach(function (t) { var g = ctx.createGain(); g.gain.value = t[2]; ws.connect(g, t[0]); g.connect(wm, 0, t[1]); });
+    bus.connect(wIn); wIn.connect(ws); wm.connect(wide); wide.connect(ctx.destination);
+    var p8 = ctx.createGain(); p8.gain.value = 0;
+    var pan = null;
+    try {
+      pan = ctx.createPanner(); pan.panningModel = "HRTF"; pan.distanceModel = "linear"; pan.refDistance = 1; pan.maxDistance = 100; pan.rolloffFactor = 0;
+      bus.connect(pan); pan.connect(p8); p8.connect(ctx.destination);
+      if (pan.positionX && ctx.createPeriodicWave) {
+        var sinW = ctx.createPeriodicWave(new Float32Array([0, 0]), new Float32Array([0, 1]));
+        var cosW = ctx.createPeriodicWave(new Float32Array([0, 1]), new Float32Array([0, 0]));
+        var ox = ctx.createOscillator(), oz = ctx.createOscillator(), gx = ctx.createGain(), gz = ctx.createGain();
+        ox.setPeriodicWave(sinW); oz.setPeriodicWave(cosW); ox.frequency.value = oz.frequency.value = 0.11;
+        gx.gain.value = gz.gain.value = 2; pan.positionX.value = 0; pan.positionZ.value = 0; pan.positionY.value = 0.3;
+        ox.connect(gx); gx.connect(pan.positionX); oz.connect(gz); gz.connect(pan.positionZ);
+        var t0 = ctx.currentTime + 0.05; ox.start(t0); oz.start(t0);
+      } else { pan.__manual = true; }
+    } catch (e) { pan = null; }
+    var rev = ctx.createGain(); rev.gain.value = 0;
+    try {
+      var conv = ctx.createConvolver(), len = Math.floor(ctx.sampleRate * 1.9), ir = ctx.createBuffer(2, len, ctx.sampleRate);
+      for (var c = 0; c < 2; c++) { var d = ir.getChannelData(c); for (var n = 0; n < len; n++) d[n] = (Math.random() * 2 - 1) * Math.pow(1 - n / len, 3.2); }
+      conv.buffer = ir; bus.connect(conv); conv.connect(rev); rev.connect(ctx.destination);
+    } catch (e) {}
+    return { ctx: ctx, pre: pre, filters: filters, stereo: stereo, mono: mono, dry: dry, wide: wide, p8: p8, pan: pan, rev: rev, els: [] };
   }
   function engAttach(el) {
     if (!eng) return null;
@@ -3173,6 +3210,16 @@
     ramp(eng.pre.gain, on ? Math.pow(10, (studio.pre + autoPre()) / 20) : 1);
     var m = on && studio.mono;
     ramp(eng.mono.gain, m ? 1 : 0); ramp(eng.stereo.gain, m ? 0 : 1);
+    var sp = on ? studio.sp : "off"; if (sp === "8d" && !eng.pan) sp = "room";
+    var G = { off: [1, 0, 0, 0], wide: [0, 1, 0, 0.04], room: [0, 0.9, 0, 0.22], "8d": [0.12, 0, 1.25, 0.14] }[sp] || [1, 0, 0, 0];
+    ramp(eng.dry.gain, G[0]); ramp(eng.wide.gain, G[1]); ramp(eng.p8.gain, G[2]); ramp(eng.rev.gain, G[3]);
+    spManual(sp === "8d");
+  }
+  var spTimer = 0;
+  function spManual(go) { // older Safari: no AudioParam positions, so move the panner on a timer
+    if (!eng || !eng.pan || !eng.pan.__manual) return;
+    clearInterval(spTimer); spTimer = 0; if (!go) return;
+    spTimer = setInterval(function () { var t = eng.ctx.currentTime * 0.11 * 2 * Math.PI; eng.pan.setPosition(2 * Math.sin(t), 0.3, 2 * Math.cos(t)); }, 50);
   }
   var eqBands = $("eqBands");
   eqBands.innerHTML = EQ_L.map(function (l, i) {
@@ -3187,6 +3234,7 @@
     $("studioPanel").hidden = !studio.on;
     $("studioOff").hidden = studio.on || !eng;
     $("monoSw").setAttribute("aria-checked", String(studio.mono));
+    [].forEach.call($("spChips").children, function (b) { var c = b.dataset.s === studio.sp; b.setAttribute("aria-checked", String(c)); b.tabIndex = c ? 0 : -1; });
     [].forEach.call($("eqChips").children, function (b) { var c = b.dataset.p === studio.preset; b.setAttribute("aria-checked", String(c)); b.tabIndex = c ? 0 : -1; });
     [].forEach.call(eqBands.querySelectorAll("input"), function (inp, i) {
       inp.value = studio.bands[i]; $("eqV" + i).textContent = dB(studio.bands[i]) + " dB";
@@ -3208,6 +3256,10 @@
     engApply(); syncStudio();
   });
   $("monoSw").addEventListener("click", function () { studio.mono = !studio.mono; engApply(); syncStudio(); });
+  $("spChips").addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    studio.sp = b.dataset.s; engResume(); engApply(); syncStudio();
+  });
   $("eqChips").addEventListener("click", function (e) {
     var b = e.target.closest("button"); if (!b) return;
     studio.preset = b.dataset.p;
