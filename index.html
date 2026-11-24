@@ -1117,6 +1117,49 @@
       .x-offset__clear:disabled { opacity: 0.45; cursor: default; }
       .x-offset__clear:focus-visible { outline: 2px solid #e8c4a8; outline-offset: 2px; }
       @media (prefers-reduced-motion: reduce) { .x-offall.is-running svg { animation: none; } }
+
+      /* Now Playing chip row: plum glass pills, rose-gold icon and text */
+      .x-chips {
+        display: flex; gap: 8px; margin: -4px calc(-1 * var(--x-padR, var(--gutter))) 0 calc(-1 * var(--x-padL, var(--gutter)));
+        padding: 4px 28px 4px var(--x-padL, var(--gutter));
+        overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain;
+        scroll-snap-type: x proximity; scroll-padding-inline: var(--x-padL, var(--gutter)); scrollbar-width: none;
+        -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent);
+        mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent);
+      }
+      .x-chips::-webkit-scrollbar { display: none; }
+      .x-chip {
+        flex: none; position: relative; display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px;
+        border-radius: var(--r-pill); border: 1px solid var(--n-line-strong); background: var(--n-glass);
+        -webkit-backdrop-filter: var(--n-blur); backdrop-filter: var(--n-blur);
+        font: var(--type-label); color: #e8c4a8; white-space: nowrap; scroll-snap-align: start; cursor: pointer;
+        transition: background var(--dur-quick) ease, border-color var(--dur-quick) ease, transform var(--dur-quick) ease, opacity var(--dur-quick) ease;
+      }
+      .x-chip::before { content: ""; position: absolute; inset: -4px 0; }
+      .x-chip[hidden] { display: none; }
+      .x-chip svg { flex: none; }
+      .x-chip:active { transform: scale(0.96); }
+      .x-chip:focus-visible { outline: 2px solid #e8c4a8; outline-offset: 2px; }
+      .x-chip[aria-disabled="true"], .x-chip:disabled { opacity: 0.4; cursor: default; transform: none; }
+      #chipLike[aria-pressed="true"] { border-color: rgba(232, 196, 168, 0.8); box-shadow: 0 0 12px rgba(232, 196, 168, 0.28); }
+      #chipLike[aria-pressed="true"] svg { fill: #e8c4a8; }
+      #lyrBtn[aria-pressed="true"], #chipOff.is-saved { background: var(--n-gold); color: #3b1230; border-color: transparent; box-shadow: 0 0 14px rgba(232, 196, 168, 0.4); }
+      .x-chip__spin { display: none; width: 14px; height: 14px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: x-spin 0.9s linear infinite; }
+      #chipOff.is-busy .x-chip__spin { display: inline-block; }
+      #chipOff.is-busy svg { display: none; }
+      @media (hover: hover) { .x-chip:not([aria-disabled="true"]):not(:disabled):hover { border-color: rgba(232, 196, 168, 0.8); background-color: rgba(201, 138, 155, 0.24); } }
+      @media (prefers-reduced-motion: reduce) { .x-chip__spin { animation-duration: 2.4s; } .x-chip:active { transform: none; } }
+      .x-liked-tile { width: 48px; height: 48px; flex: none; display: grid; place-items: center; border-radius: 10px; background: var(--n-gold); color: #3b1230; box-shadow: 0 0 0 1px rgba(232, 196, 168, 0.22); }
+      @media (max-width: 899px) {
+        .x-stage { --art: clamp(150px, calc(100dvh - 546px - env(safe-area-inset-top) - env(safe-area-inset-bottom)), 420px); }
+      }
+      @media (max-width: 899px) and (max-height: 739px) {
+        .x-now { gap: 10px; }
+        .x-stage { --art: clamp(116px, calc(100dvh - 548px - env(safe-area-inset-top) - env(safe-area-inset-bottom)), 300px); }
+      }
+      @media (min-width: 900px) {
+        .x-chips { flex-wrap: wrap; overflow: visible; margin: -4px 0 0; padding: 4px 0; -webkit-mask-image: none; mask-image: none; }
+      }
     </style>
       <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png" />
@@ -1167,8 +1210,27 @@
                   <p class="x-artist" id="artist">Tap Add songs to start</p>
                   <p class="x-quality" id="quality" hidden></p>
                 </div>
-                <button type="button" class="x-lyr-btn" id="lyrBtn" aria-pressed="false" aria-controls="lyr">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 11h16M4 16h10"/></svg>Lyrics
+              </div>
+
+              <div class="x-chips" id="npChips" role="toolbar" aria-label="Song actions">
+                <button type="button" class="x-chip" id="chipLike" aria-pressed="false">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.7c0 5.6-7.5 10.2-7.5 10.2z"/></svg><span>Like</span>
+                </button>
+                <button type="button" class="x-chip" id="lyrBtn" aria-pressed="false" aria-controls="lyr">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 11h16M4 16h10"/></svg><span>Lyrics</span>
+                </button>
+                <button type="button" class="x-chip" id="chipOff" aria-pressed="false" hidden>
+                  <span class="x-chip__spin" aria-hidden="true"></span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg><span id="chipOffTxt">Save offline</span>
+                </button>
+                <button type="button" class="x-chip" id="chipShare">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg><span>Share</span>
+                </button>
+                <button type="button" class="x-chip" id="chipMix">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="2" fill="currentColor"/><path d="M8.5 8.5a5 5 0 0 0 0 7M15.5 8.5a5 5 0 0 1 0 7M5.6 5.6a9 9 0 0 0 0 12.8M18.4 5.6a9 9 0 0 1 0 12.8"/></svg><span>Mix</span>
+                </button>
+                <button type="button" class="x-chip" id="chipAdd" aria-haspopup="dialog">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h11M4 12h11M4 18h7M18 13v8M14 17h8"/></svg><span>Add to playlist</span>
                 </button>
               </div>
 
@@ -4979,6 +5041,7 @@
     var t = menuTrack, b = menuBtn; closeMenu(false);
     if (t) openSheet(t, b);
   });
+  window.NeskaAddToPlaylist = openSheet; // the Now Playing chip row reuses this sheet
 
   /* ---------- Playlist ⋯ menus: rename, cover, delete; remove and reorder songs ---------- */
   var plFail = function () { P.toast("Couldn't save the playlist.", true); };
@@ -6776,6 +6839,173 @@
     if (b && b.classList.contains("is-pressed") && !b.contains(e.relatedTarget)) b.classList.remove("is-pressed");
   }, { capture: true, passive: true });
   window.addEventListener("blur", releaseAll);
+})();
+    </script>
+    <script>
+/* ===== Now Playing chip row: Like, Lyrics, Offline, Share, Mix, Add to playlist; Liked songs playlist ===== */
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var P = window.NeskaPlayer;
+  if (!P || !$("npChips")) return;
+  var LKEY = "neska.likes";
+  var chips = ["chipLike", "lyrBtn", "chipOff", "chipShare", "chipMix", "chipAdd"].map($);
+  var likeBtn = $("chipLike"), offBtn = $("chipOff"), offTxt = $("chipOffTxt");
+
+  function keyOf(t) { return t ? (t.cloudId || (t.title + "|" + t.artist)) : ""; }
+  function readLikes() {
+    try { var a = JSON.parse(localStorage.getItem(LKEY) || "[]"); return Array.isArray(a) ? a.filter(function (k) { return typeof k === "string"; }) : []; }
+    catch (e) { return []; }
+  }
+  var likes = readLikes();
+  function writeLikes() { try { localStorage.setItem(LKEY, JSON.stringify(likes)); } catch (e) {} }
+  function isBlocked(t) { return !!(P.isBlocked && P.isBlocked(t)); }
+  function shuffled(a) {
+    a = a.slice();
+    for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), x = a[i]; a[i] = a[j]; a[j] = x; }
+    return a;
+  }
+
+  /* ---------- state of every chip for the current song ---------- */
+  function syncLike(t) {
+    var on = !!t && likes.indexOf(keyOf(t)) > -1;
+    likeBtn.setAttribute("aria-pressed", String(on));
+    likeBtn.setAttribute("aria-label", on ? "Liked. Tap to unlike" : "Like");
+  }
+  function syncOff(t) {
+    var off = window.NeskaOffline;
+    if (!t || !t.cloudId || !off) { offBtn.hidden = true; return; }
+    var busy = off.busy(t.cloudId), saved = !busy && off.has(t.cloudId);
+    offBtn.hidden = false;
+    offBtn.classList.toggle("is-busy", !!busy);
+    offBtn.classList.toggle("is-saved", saved);
+    offBtn.setAttribute("aria-pressed", String(saved));
+    offBtn.setAttribute("aria-busy", String(!!busy));
+    offTxt.textContent = busy ? "Saving…" : saved ? "Saved" : "Save offline";
+  }
+  function sync() {
+    var t = P.current();
+    chips.forEach(function (c) { if (c) c.setAttribute("aria-disabled", String(!t)); });
+    syncLike(t); syncOff(t);
+  }
+  new MutationObserver(sync).observe($("title"), { childList: true, characterData: true, subtree: true });
+  window.addEventListener("neska-offline-change", function () { syncOff(P.current()); });
+  sync();
+
+  /* ---------- Like ---------- */
+  likeBtn.addEventListener("click", function () {
+    var t = P.current(); if (!t) return;
+    var k = keyOf(t), i = likes.indexOf(k);
+    if (i > -1) likes.splice(i, 1); else likes.push(k);
+    writeLikes(); syncLike(t); renderLiked();
+    P.toast(i > -1 ? "Removed from Liked songs" : "Added to Liked songs");
+  });
+
+  /* ---------- Save offline ---------- */
+  offBtn.addEventListener("click", function () {
+    var t = P.current(), off = window.NeskaOffline;
+    if (!t || !t.cloudId || !off || off.busy(t.cloudId)) return;
+    if (off.has(t.cloudId)) {
+      off.remove(t.cloudId).then(function () { P.toast("Removed offline copy"); }, function () { P.toast("Couldn't remove the offline copy of " + t.title, true); }).then(function () { syncOff(P.current()); });
+      return;
+    }
+    var job = off.save(t);
+    syncOff(t);
+    job.then(function () { P.toast("Saved offline"); }, function (e) {
+      if (e && e.name === "AbortError") return;
+      P.toast(e && e.name === "QuotaExceededError" ? "Your phone's storage for Neska is full." : "Couldn't save " + t.title + " offline", true);
+    }).then(function () { syncOff(P.current()); });
+  });
+
+  /* ---------- Share ---------- */
+  function copyLink(url) {
+    var ok = function () { P.toast("Link copied"); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(ok, function () { legacyCopy(url) ? ok() : P.toast("Couldn't copy the link", true); });
+    } else if (legacyCopy(url)) ok(); else P.toast("Couldn't copy the link", true);
+  }
+  function legacyCopy(text) {
+    var ta = document.createElement("textarea"), done = false;
+    ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    try { done = document.execCommand("copy"); } catch (e) {}
+    ta.remove(); return done;
+  }
+  $("chipShare").addEventListener("click", function () {
+    var t = P.current(); if (!t) return;
+    var url = location.origin, data = { title: t.title, text: "Listening to " + t.title + " by " + t.artist + " on Neska Music", url: url };
+    if (navigator.share) {
+      navigator.share(data).catch(function (e) { if (!e || e.name !== "AbortError") copyLink(url); });
+    } else copyLink(url);
+  });
+
+  /* ---------- Mix: same artist (max 3), often played, then the rest; 25 max ---------- */
+  $("chipMix").addEventListener("click", function () {
+    var t = P.current(); if (!t) return;
+    var norm = function (s) { return String(s || "").trim().toLowerCase(); };
+    var artist = norm(t.artist), seen = {};
+    seen[keyOf(t)] = true;
+    var pool = P.tracks().filter(function (x) {
+      var k = keyOf(x);
+      if (x === t || seen[k] || isBlocked(x)) return false; // offline: only songs saved offline
+      seen[k] = true; return true;
+    });
+    var same = artist ? shuffled(pool.filter(function (x) { return norm(x.artist) === artist; })).slice(0, 3) : [];
+    var rest = pool.filter(function (x) { return same.indexOf(x) < 0; });
+    var often = rest.filter(function (x) { return (x.playCount || 0) > 0; })
+      .map(function (x) { return { t: x, w: (x.playCount || 0) * (0.6 + Math.random() * 0.8) }; })
+      .sort(function (a, b) { return b.w - a.w; }).slice(0, 12).map(function (o) { return o.t; });
+    var others = shuffled(rest.filter(function (x) { return often.indexOf(x) < 0; }));
+    var list = [t].concat(same, often, others).slice(0, 25);
+    if (P.playQueue(list, 0, false) === false) return;
+    P.toast("Mix started from " + t.title);
+  });
+
+  /* ---------- Add to playlist: the library's sheet ---------- */
+  $("chipAdd").addEventListener("click", function () {
+    var t = P.current(); if (!t || typeof window.NeskaAddToPlaylist !== "function") return;
+    window.NeskaAddToPlaylist(t, $("chipAdd"));
+  });
+
+  // aria-disabled chips stay focusable; swallow their taps before any handler runs
+  $("npChips").addEventListener("click", function (e) {
+    var c = e.target.closest && e.target.closest(".x-chip");
+    if (c && c.getAttribute("aria-disabled") === "true") { e.stopImmediatePropagation(); e.preventDefault(); }
+  }, true);
+
+  /* ---------- Liked songs: a read-only smart playlist at the top of Playlists ---------- */
+  var plList = $("plList");
+  function likedTracks() {
+    var by = {};
+    P.tracks().forEach(function (t) { var k = keyOf(t); if (!by[k]) by[k] = t; });
+    return likes.slice().reverse().map(function (k) { return by[k]; }).filter(Boolean);
+  }
+  var likedLi = document.createElement("li");
+  likedLi.className = "x-liked";
+  likedLi.innerHTML = '<button type="button" class="x-row"><span class="x-liked-tile" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 20.5s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.7c0 5.6-7.5 10.2-7.5 10.2z"/></svg></span><span class="x-row__txt"><span class="x-row__title">Liked songs</span><span class="x-row__artist"></span></span></button>';
+  likedLi.addEventListener("click", function (e) {
+    e.stopPropagation(); // not one of the saved playlists
+    var it = likedTracks(); if (!it.length) return;
+    var at = 0; while (at < it.length - 1 && isBlocked(it[at])) at++;
+    if (P.playQueue(it, at, false) !== false) P.showView("now");
+  });
+  var rendering = false;
+  function renderLiked() {
+    if (rendering) return;
+    rendering = true;
+    var n = likedTracks().length, sub = n === 1 ? "1 song" : n + " songs";
+    if (!n) { if (likedLi.parentNode) likedLi.remove(); }
+    else {
+      likedLi.querySelector(".x-row__artist").textContent = sub;
+      likedLi.firstChild.setAttribute("aria-label", "Liked songs, " + sub + ". Play");
+      if (plList.firstChild !== likedLi) plList.insertBefore(likedLi, plList.firstChild);
+    }
+    rendering = false;
+  }
+  new MutationObserver(function () { if (plList.firstChild !== likedLi || !document.contains(likedLi)) renderLiked(); }).observe(plList, { childList: true });
+  var libEl = $("list");
+  if (libEl) new MutationObserver(function () { renderLiked(); sync(); }).observe(libEl, { childList: true });
+  renderLiked();
 })();
     </script>
     <script>
