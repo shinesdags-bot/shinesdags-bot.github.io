@@ -127,7 +127,7 @@ const pick = (nodes, fn) => { for (const n of nodes) { const v = fn(n); if (v !=
 function runStyle(C, rPr, pNodes, defColor, strong) { // pNodes: [pPr, ...lvl nodes]; strong: shape style colour beats inherited text styles
   const rs = [rPr, ...pNodes.map(n => A(n, 'defRPr'))].filter(Boolean);
   const sz = pick(rs, r => r.getAttribute('sz')); const b = pick(rs, r => r.getAttribute('b')), i = pick(rs, r => r.getAttribute('i')), u = pick(rs, r => r.getAttribute('u'));
-  const col = pick(strong ? [rPr, A(pNodes[0] || {}, 'defRPr')].filter(Boolean) : rs, r => { const f = A(r, 'solidFill'); return f ? colorOf(firstColor(f), C) : null; });
+  const col = pick(strong ? [rPr, ...pNodes.filter(n => n.localName === 'pPr').map(n => A(n, 'defRPr'))].filter(Boolean) : rs, r => { const f = A(r, 'solidFill'); return f ? colorOf(firstColor(f), C) : null; });
   let face = pick(rs, r => A(r, 'latin')?.getAttribute('typeface')); if (face === '+mj-lt') face = C.theme.major; else if (!face || face === '+mn-lt') face = C.theme.minor;
   return { sz: sz ? +sz / 100 : 18, b: b === '1' || b === 'true', i: i === '1' || i === 'true', u: !!u && u !== 'none', color: col || defColor, face, base: rPr?.getAttribute('baseline') };
 }
