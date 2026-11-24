@@ -282,10 +282,14 @@ function startEdit(rec, x, y) {
   if (!rec.text) return; select(rec); editingShape = rec; const tx = rec.el.querySelector('.ptx'); rec.el.classList.add('editing');
   tx.querySelectorAll('[data-hint]').forEach(p => p.removeAttribute('data-hint'));
   rec.before = tx.innerHTML; tx.contentEditable = 'true'; try { document.execCommand('defaultParagraphSeparator', false, 'p'); document.execCommand('styleWithCSS', false, true); } catch {}
-  tx.focus({ preventScroll: true });
-  let range = x != null && document.caretRangeFromPoint ? document.caretRangeFromPoint(x, y) : null;
-  if (!range || !tx.contains(range.startContainer)) { range = document.createRange(); range.selectNodeContents(tx); range.collapse(false); }
-  const s = getSelection(); s.removeAllRanges(); s.addRange(range);
+  const place = () => {
+    tx.focus({ preventScroll: true });
+    let range = x != null && document.caretRangeFromPoint ? document.caretRangeFromPoint(x, y) : null;
+    if (!range || !tx.contains(range.startContainer) || range.startContainer === tx) { range = document.createRange(); const ps = tx.querySelectorAll('p'); const last = ps[ps.length - 1];
+      if (last && !last.textContent) range.setStart(last, 0); else if (last) { range.selectNodeContents(last); range.collapse(false); } else { range.selectNodeContents(tx); range.collapse(false); } }
+    const s = getSelection(); s.removeAllRanges(); s.addRange(range);
+  };
+  place(); setTimeout(() => { if (editingShape === rec && document.activeElement !== tx) place(); }, 0);
 }
 function endEdit() {
   const rec = editingShape; if (!rec) return; editingShape = null; const tx = rec.el.querySelector('.ptx'); tx.contentEditable = 'false'; rec.el.classList.remove('editing');

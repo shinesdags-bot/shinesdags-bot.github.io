@@ -213,3 +213,5 @@ h2{font-size:13px;text-transform:uppercase;letter-spacing:1.2px;color:var(--mute
   body.printing-p .pprint{display:block}
   .pprintpage{break-after:page;page-break-after:always;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
+.ptx p{min-height:1.2em}
+.pshape.editing .ptx{min-height:1.2em;cursor:text}
