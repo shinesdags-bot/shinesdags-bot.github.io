@@ -118,7 +118,15 @@ function setSize(pt) {
 }
 function insertTable() {
   const row = c => '<tr>' + Array(3).fill(`<${c}><br></${c}>`).join('') + '</tr>';
-  cmd('insertHTML', `<table><tbody>${row('td')}${row('td')}${row('td')}</tbody></table><p><br></p>`);
+  const html = `<table><tbody>${row('td')}${row('td')}${row('td')}</tbody></table><p><br></p>`;
+  restore(); let n = getSelection().anchorNode, list = null; while (n && n !== ed()) { if (n.nodeType === 1 && /^(UL|OL)$/.test(n.tagName)) list = n; n = n.parentNode; }
+  if (list) { // never put a table inside a bullet; drop it after the list
+    const li = getSelection().anchorNode?.nodeType === 1 ? getSelection().anchorNode.closest?.('li') : getSelection().anchorNode?.parentNode?.closest?.('li');
+    if (li && !norm(li.textContent)) li.remove();
+    const t = document.createElement('template'); t.innerHTML = html; const first = t.content.firstChild, last = t.content.lastChild; list.after(t.content);
+    const r = document.createRange(); r.selectNodeContents(first.querySelector('td')); r.collapse(true); const s = getSelection(); s.removeAllRanges(); s.addRange(r); keepRange(); changed(); syncBar(); return;
+  }
+  cmd('insertHTML', html);
 }
 function tableOp(op) {
   restore(); const c = cellOf(getSelection().anchorNode); if (!c) return; const tr = c.parentNode, tb = tr.closest('table'), ci = [...tr.children].indexOf(c);
