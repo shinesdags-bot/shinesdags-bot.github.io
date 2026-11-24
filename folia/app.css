@@ -166,3 +166,4 @@ h2{font-size:13px;text-transform:uppercase;letter-spacing:1.2px;color:var(--mute
   body.printing-x .xprint{display:block}
   .xprint table{border-collapse:collapse;font:10pt Calibri,Arial,sans-serif}.xprint td{border:1px solid #bbb;padding:3px 6px;white-space:nowrap}
 }
+#xWrap:focus{outline:none}

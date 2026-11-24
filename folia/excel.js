@@ -241,6 +241,7 @@ function moveTo(r, c, extend) {
 }
 
 // ---------- editing ----------
+const gridFocus = () => { const w = $('#xWrap'); if (document.activeElement !== w) w.focus({ preventScroll: true }); };
 function startEdit(initial) {
   if (editing) return; const td = cellEl(sel.r, sel.c); if (!td) return;
   const inp = $('#xIn'), wrap = $('#xWrap'); const tr = td.getBoundingClientRect(), wr = wrap.getBoundingClientRect();
@@ -257,7 +258,7 @@ function setCell(r, c, text, sheetIdx = act) {
 }
 function commit(move) {
   if (!editing) return false; const e = editing; editing = null;
-  const text = e.src === 'fx' ? $('#xFx').value : $('#xIn').value; $('#xIn').classList.add('hidden');
+  const text = e.src === 'fx' ? $('#xFx').value : $('#xIn').value; if (e.src === 'cell') gridFocus(); $('#xIn').classList.add('hidden');
   const before = hf.getCellSerialized({ sheet: sid(act), row: e.r, col: e.c });
   if (rawText(before, book.sheets[act].st[K(e.r, e.c)]?.nf) !== text) {
     snap();
@@ -267,7 +268,7 @@ function commit(move) {
   if (move === 'down') moveTo(e.r + 1, e.c); else if (move === 'right') moveTo(e.r, e.c + 1); else if (move === 'left') moveTo(e.r, e.c - 1); else showSel();
   return true;
 }
-function cancel() { if (!editing) return; editing = null; $('#xIn').classList.add('hidden'); showSel(); }
+function cancel() { if (!editing) return; if (editing.src === 'cell') gridFocus(); editing = null; $('#xIn').classList.add('hidden'); showSel(); }
 function clearSel() { const n = norm(), id = sid(act); snap(); for (let r = n.r1; r <= n.r2; r++) for (let c = n.c1; c <= n.c2; c++) hf.setCellContents({ sheet: id, row: r, col: c }, [[null]]); paintAll(); showSel(); changed(); }
 
 // ---------- formatting ----------
@@ -359,7 +360,7 @@ function show(name, id) {
   xname = name.replace(/\.(csv|xlsx|xlsm)$/i, '') + '.xlsx'; xid = id; dirty = false; undoS = []; redoS = []; act = 0; sel = { r: 0, c: 0, r2: 0, c2: 0 }; editing = null;
   $('#xName').value = xname.replace(/\.xlsx$/i, ''); $('#xState').textContent = 'Saved';
   $('#home').classList.add('hidden'); $('#editor').classList.add('hidden'); $('#wordEd').classList.add('hidden'); $('#xlEd').classList.remove('hidden');
-  renderAll(); $('#xWrap').scrollTo(0, 0);
+  renderAll(); $('#xWrap').scrollTo(0, 0); if (matchMedia('(pointer:fine)').matches) gridFocus();
 }
 export async function openExcel(file, id) {
   ctx.busy(true, 'Opening…');
@@ -390,7 +391,7 @@ export function initExcel(c) {
     if (td) { const r = td.parentNode.rowIndex - 1, cc = td.cellIndex - 1; const wasCur = !rangeMode && r === sel.r && cc === sel.c && sel.r === sel.r2 && sel.c === sel.c2;
       if (editing) commit();
       if (e.pointerType !== 'mouse') { drag = { touch: true, r, cc, wasCur }; return; }   // decide on pointerup so scrolling still works
-      if (e.shiftKey) moveTo(r, cc, true); else { moveTo(r, cc); drag = { r, cc }; } return; }
+      gridFocus(); if (e.shiftKey) moveTo(r, cc, true); else { moveTo(r, cc); drag = { r, cc }; } return; }
     if (th && th.dataset.c != null) { commit(); const cc = +th.dataset.c; sel = { r: 0, c: cc, r2: Math.max(used().rows - 1, rowsShown - 1), c2: cc }; showSel(); }
     else if (th && th.dataset.r != null) { commit(); const r = +th.dataset.r; sel = { r, c: 0, r2: r, c2: colsShown - 1 }; showSel(); }
   });
@@ -414,7 +415,7 @@ export function initExcel(c) {
   fx.addEventListener('blur', () => { if (editing?.src === 'fx') commit(); });
   $('#xRef').addEventListener('change', e => { const v = e.target.value.trim().toUpperCase(), [p, q] = v.split(':').map(parseA1); if (p) { moveTo(p.r, p.c); if (q) moveTo(q.r, q.c, true); } else showSel(); });
   document.addEventListener('keydown', e => {
-    if ($('#xlEd').classList.contains('hidden') || editing || document.activeElement?.matches('input,textarea,select') || !$('#xSheetSheet').classList.contains('hidden') || !$('#xSaveSheet').classList.contains('hidden')) return;
+    if ($('#xlEd').classList.contains('hidden') || editing || (document.activeElement?.matches('input,textarea,select') && document.activeElement.id !== 'xIn') || !$('#xSheetSheet').classList.contains('hidden') || !$('#xSaveSheet').classList.contains('hidden')) return;
     const m = e.ctrlKey || e.metaKey, ex = e.shiftKey, cr = ex ? sel.r2 : sel.r, cc = ex ? sel.c2 : sel.c;
     if (m && /^[zZ]$/.test(e.key)) { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
     if (m && e.key === 'y') { e.preventDefault(); redo(); return; }
@@ -440,6 +441,7 @@ export function initExcel(c) {
   $('#xSumBtn').onclick = autoSum;
   $$('#xBar [data-rc]').forEach(b => b.onclick = () => rowsCols(b.dataset.rc));
   $('#xSortA').onclick = () => sortSel(false); $('#xSortZ').onclick = () => sortSel(true);
+  $('#xWrap').tabIndex = 0;
   $('#xRange').onclick = () => { rangeMode = !rangeMode; $('#xRange').classList.toggle('on', rangeMode); if (rangeMode) ctx.toast('Tap another cell to select a range'); };
   $('#xClear').onclick = () => { commit(); clearSel(); };
   $('#xName').addEventListener('change', e => { const v = e.target.value.trim().replace(/[\\/:*?"<>|]/g, '') || 'Untitled'; e.target.value = v; xname = v + '.xlsx'; dirty = true; autosave(); });
