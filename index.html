@@ -1610,7 +1610,7 @@
               <button type="submit" class="x-add x-add--big x-auth__submit" id="authSubmit">Sign in</button>
             </form>
             <button type="button" class="x-auth__skip" id="authSkip">Use without saving</button>
-            <p class="x-auth__note">You'll sign in each time you open Neska. Your songs stay saved in your account.</p>
+            <p class="x-auth__note">Neska keeps you signed in on this device.</p>
           </div>
         </div>
         <div class="x-confirm x-pl-dlg" id="plDlg" role="dialog" aria-modal="true" aria-labelledby="plDlgTitle" hidden>
@@ -4572,7 +4572,7 @@
   });
   function showOverlay() { auth.hidden = false; $("acct").hidden = true; setTimeout(function () { try { email.focus({ preventScroll: true }); } catch (e) {} }, 50); }
   function hideOverlay() { auth.hidden = true; }
-  $("authSkip").addEventListener("click", function () { hideOverlay(); renderChip(); });
+  $("authSkip").addEventListener("click", function () { if (S && !S.access) S = null; hideOverlay(); renderChip(); });
 
   form.addEventListener("submit", function (e) {
     e.preventDefault();
@@ -4585,16 +4585,37 @@
     var p = mode === "up"
       ? authPost("/auth/v1/signup", { email: em, password: pw }).then(function (j) { return j && j.access_token ? j : signIn(); })
       : signIn();
+    var FAIL = "Couldn't sign in. Please try again.";
     p.then(function (j) {
-      setSession(j);
+      if (!j || !j.access_token) throw new Error(errText(j, FAIL));
+      // a fresh sign-in replaces any guest, half or offline-remembered state
+      offS = null; S = null;
+      setSession(j); // persists the session first
       if (!S.user) { S.user = { email: em }; persistSession(); }
-      pass.value = ""; pass.type = "password"; $("authShow").textContent = "Show";
-      hideOverlay(); P.showView("home"); renderChip(); setCredit(); authChanged();
-      return loadLibrary().then(loadPlaylists);
+      afterSignIn();
     }).catch(function (e2) {
-      err.textContent = (e2 && e2.message) || "Couldn't sign in.";
-    }).then(function () { submit.disabled = false; setMode(mode); if (S) err.textContent = ""; });
+      if (S && S.access) return; // signed in; follow-up problems are handled in afterSignIn
+      S = null;
+      err.textContent = (e2 && e2.message) || FAIL;
+    }).then(function () {
+      var msg = err.textContent;
+      submit.disabled = false; setMode(mode); // setMode clears #authErr
+      if (!(S && S.access)) err.textContent = msg || FAIL;
+    });
   });
+  /* signed in: hide the card, then every follow-up step on its own, none of them blocking sign-in */
+  function afterSignIn() {
+    var warned = false;
+    var warn = function () { if (warned) return; warned = true; try { P.toast("Signed in, but couldn't load your library. Pull to retry.", true); } catch (e) {} };
+    var step = function (f) {
+      try { var r = f(); return r && typeof r.then === "function" ? r.then(null, warn) : r; } catch (e) { warn(); }
+    };
+    step(function () { pass.value = ""; pass.type = "password"; $("authShow").textContent = "Show"; });
+    step(hideOverlay);
+    step(function () { P.showView("home"); });
+    step(renderChip); step(setCredit); step(authChanged); step(offlineSync);
+    Promise.resolve(step(loadLibrary)).then(function () { return step(loadPlaylists); });
+  }
 
   /* ---------- Account chip ---------- */
   function renderChip() {
@@ -5699,7 +5720,7 @@
     if (offS && !S) {
       var sv = offS; reconnecting = true;
       authPost("/auth/v1/token?grant_type=refresh_token", { refresh_token: sv.refresh }).then(function (j) {
-        if (S || offS !== sv) return;
+        if ((S && S.access) || offS !== sv || !j || !j.access_token) return;
         offS = null; S = { user: sv.user || null }; setSession(j);
         renderChip(); setCredit(); authChanged();
         return playsFlush().then(function () { return loadLibrary(true); }).then(loadPlaylists);
@@ -5861,20 +5882,21 @@
 
   function authChanged() { try { window.dispatchEvent(new Event("neska:auth")); } catch (e) {} }
   setMode("in");
-  var saved = readSavedSession();
-  if (!saved) showOverlay();
+  var savedSess = readSavedSession(); // not "saved": that name is the playlists' saved(pl) check
+  if (!savedSess) showOverlay();
   else {
     hideOverlay(); // wait for the refresh instead of flashing the sign-in card
-    authPost("/auth/v1/token?grant_type=refresh_token", { refresh_token: saved.refresh }).then(function (j) {
-      if (S) return; // signed in some other way meanwhile
-      S = { user: saved.user || null };
+    authPost("/auth/v1/token?grant_type=refresh_token", { refresh_token: savedSess.refresh }).then(function (j) {
+      if (S && S.access) return; // signed in some other way meanwhile
+      if (!j || !j.access_token) throw new Error("No session");
+      S = { user: savedSess.user || null };
       setSession(j);
       P.showView("home"); renderChip(); setCredit(); authChanged();
       return loadLibrary().then(loadPlaylists);
     }).catch(function (e) {
       if (S && S.access) return;
       // offline with a saved library: show it from the copy, sign in again when back online
-      if (e && e.offline && saved.user && saved.user.id && libRead(saved.user.id)) { S = null; enterOffline(saved); return; }
+      if (e && e.offline && savedSess.user && savedSess.user.id && libRead(savedSess.user.id)) { S = null; enterOffline(savedSess); return; }
       S = null;
       clearSavedSession();
       setMode("in");
@@ -7053,9 +7075,11 @@
     c.save({ ytkey: k }).catch(function () { P.toast("Couldn't sync your YouTube key", true); });
   }
   function pullKey() {
-    var c = cloudSet(); if (!c || getKey()) return;
+    var c = cloudSet(); if (!c) return;
     c.load().then(function (o) {
-      var k = o && typeof o.ytkey === "string" ? o.ytkey.trim() : "";
+      var k = o && typeof o.ytkey === "string" ? o.ytkey.trim() : "", local = getKey();
+      // a key entered while signed out: upload it when the account has none
+      if (local && !k) { var obj = {}; Object.keys(o || {}).forEach(function (n) { obj[n] = o[n]; }); obj.ytkey = local; return c.save(obj).catch(function () {}); }
       if (!k || getKey()) return;
       lsSet(K_KEY, k); keyIn.value = k; status("ok");
       if (lastQ) search(lastQ, true);
