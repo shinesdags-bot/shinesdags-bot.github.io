@@ -25,7 +25,7 @@
   </header>
 
   <label class="drop" id="drop">
-    <input type="file" id="openInput" accept="application/pdf,.pdf" hidden />
+    <input type="file" id="openInput" accept="application/pdf,.pdf" class="vh" aria-label="Choose a PDF" />
     <div class="drop-ic">＋</div>
     <div class="drop-t">Open a PDF</div>
     <div class="drop-s">Tap to pick from Files, or drop one here</div>
@@ -42,7 +42,7 @@
 
   <h2>Recent</h2>
   <div id="recent" class="recent"><p class="empty">Files you open show up here, saved on this device.</p></div>
-  <input type="file" id="mergeInput" accept="application/pdf,.pdf" multiple hidden />
+  <input type="file" id="mergeInput" accept="application/pdf,.pdf" multiple class="vh" aria-label="Choose PDFs to merge" />
 </section>
 
 <!-- EDITOR -->
@@ -78,7 +78,7 @@
     <button data-t="image"><span>▣</span>Image</button>
     <button data-t="sign"><span>✍</span>Sign</button>
   </nav>
-  <input type="file" id="imgInput" accept="image/*" hidden />
+  <input type="file" id="imgInput" accept="image/*" class="vh" aria-label="Choose an image" />
 </section>
 
 <!-- PAGES PANEL -->
@@ -87,7 +87,7 @@
     <div class="sheet-h"><b>Pages</b><button class="ib" data-close>✕</button></div>
     <div class="thumbs" id="thumbs"></div>
     <div class="sheet-f">
-      <label class="btn"><input type="file" id="addPdfInput" accept="application/pdf,.pdf" hidden />Add pages from PDF</label>
+      <label class="btn"><input type="file" id="addPdfInput" accept="application/pdf,.pdf" class="vh" aria-label="Choose a PDF" />Add pages from PDF</label>
       <button class="btn" id="blankBtn">Add blank page</button>
       <button class="btn" id="splitBtn">Extract selected</button>
     </div>
