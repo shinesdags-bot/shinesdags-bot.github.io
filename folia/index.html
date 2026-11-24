@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<title>Folia</title>
+<meta name="theme-color" content="#0f3d3a" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Folia" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png" />
+<link rel="icon" href="icon-192.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="app.css" />
+</head>
+<body>
+
+<!-- HOME -->
+<section id="home" class="screen">
+  <header class="home-top">
+    <img src="icon-192.png" alt="" class="logo" />
+    <div><h1>Folia</h1><p class="sub">Every office file, one editor.</p></div>
+  </header>
+
+  <label class="drop" id="drop">
+    <input type="file" id="openInput" accept="application/pdf,.pdf" hidden />
+    <div class="drop-ic">＋</div>
+    <div class="drop-t">Open a PDF</div>
+    <div class="drop-s">Tap to pick from Files, or drop one here</div>
+  </label>
+
+  <h2>Tools</h2>
+  <div class="tiles">
+    <button class="tile" data-open="pdf"><span class="tag pdf">PDF</span><b>Edit &amp; sign</b><i>Text, whiteout, highlight, draw, sign, pages</i></button>
+    <button class="tile" data-open="merge"><span class="tag pdf">PDF</span><b>Merge PDFs</b><i>Combine several files into one</i></button>
+    <button class="tile soon"><span class="tag doc">DOCX</span><b>Word</b><i>Coming next</i></button>
+    <button class="tile soon"><span class="tag xls">XLSX</span><b>Excel</b><i>Coming soon</i></button>
+    <button class="tile soon"><span class="tag ppt">PPTX</span><b>PowerPoint</b><i>Coming soon</i></button>
+  </div>
+
+  <h2>Recent</h2>
+  <div id="recent" class="recent"><p class="empty">Files you open show up here, saved on this device.</p></div>
+  <input type="file" id="mergeInput" accept="application/pdf,.pdf" multiple hidden />
+</section>
+
+<!-- EDITOR -->
+<section id="editor" class="screen hidden">
+  <header class="ed-top">
+    <button class="ib" id="backBtn" title="Back">‹</button>
+    <div class="ed-name" id="docName">Document.pdf</div>
+    <button class="ib" id="undoBtn" title="Undo">↶</button>
+    <button class="ib" id="pagesBtn" title="Pages">▤</button>
+    <button class="save" id="saveBtn">Save</button>
+  </header>
+
+  <div class="ed-props" id="props">
+    <label>Size <select id="pSize"><option>10</option><option>12</option><option selected>14</option><option>18</option><option>24</option><option>32</option><option>48</option></select></label>
+    <div class="swatches" id="pColor">
+      <button data-c="#111111" class="on" style="background:#111"></button>
+      <button data-c="#1f4fd1" style="background:#1f4fd1"></button>
+      <button data-c="#c62828" style="background:#c62828"></button>
+      <button data-c="#1b7a3a" style="background:#1b7a3a"></button>
+      <button data-c="#ffd23f" style="background:#ffd23f"></button>
+    </div>
+    <label>Line <select id="pWidth"><option value="1">Thin</option><option value="2" selected>Medium</option><option value="4">Thick</option></select></label>
+  </div>
+
+  <main id="viewer" class="viewer"></main>
+
+  <nav class="toolbar" id="toolbar">
+    <button data-t="select" class="on"><span>⤧</span>Move</button>
+    <button data-t="text"><span>T</span>Text</button>
+    <button data-t="whiteout"><span>▭</span>Whiteout</button>
+    <button data-t="highlight"><span>▮</span>Highlight</button>
+    <button data-t="draw"><span>✎</span>Draw</button>
+    <button data-t="image"><span>▣</span>Image</button>
+    <button data-t="sign"><span>✍</span>Sign</button>
+  </nav>
+  <input type="file" id="imgInput" accept="image/*" hidden />
+</section>
+
+<!-- PAGES PANEL -->
+<div class="sheet hidden" id="pagesSheet">
+  <div class="sheet-card wide">
+    <div class="sheet-h"><b>Pages</b><button class="ib" data-close>✕</button></div>
+    <div class="thumbs" id="thumbs"></div>
+    <div class="sheet-f">
+      <label class="btn"><input type="file" id="addPdfInput" accept="application/pdf,.pdf" hidden />Add pages from PDF</label>
+      <button class="btn" id="blankBtn">Add blank page</button>
+      <button class="btn" id="splitBtn">Extract selected</button>
+    </div>
+  </div>
+</div>
+
+<!-- SIGNATURE -->
+<div class="sheet hidden" id="signSheet">
+  <div class="sheet-card">
+    <div class="sheet-h"><b>Signature</b><button class="ib" data-close>✕</button></div>
+    <div class="seg"><button data-m="draw" class="on">Draw</button><button data-m="type">Type</button><button data-m="saved">Saved</button></div>
+    <div class="sm" id="smDraw"><canvas id="sigPad" width="900" height="300"></canvas><button class="link" id="sigClear">Clear</button></div>
+    <div class="sm hidden" id="smType"><input id="sigText" placeholder="Type your name" /><div class="sig-prev" id="sigPrev">Your name</div></div>
+    <div class="sm hidden" id="smSaved"><div id="savedSigs" class="saved-sigs"></div></div>
+    <label class="chk"><input type="checkbox" id="sigKeep" checked /> Save for next time</label>
+    <div class="sheet-f"><button class="btn primary" id="sigUse">Place signature</button></div>
+  </div>
+</div>
+
+<div class="toast hidden" id="toast"></div>
+<div class="busy hidden" id="busy"><div class="spin"></div><span id="busyT">Working…</span></div>
+
+<script src="vendor/pdf-lib.min.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>
