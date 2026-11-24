@@ -1160,6 +1160,59 @@
       @media (min-width: 900px) {
         .x-chips { flex-wrap: wrap; overflow: visible; margin: -4px 0 0; padding: 4px 0; -webkit-mask-image: none; mask-image: none; }
       }
+
+      /* ===== On-demand YouTube songs (NeskaStream) ===== */
+      /* Audio / Video toggle, centred in the Now Playing header row */
+      .x-top { position: relative; }
+      .x-avt {
+        position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 2;
+        display: flex; gap: 2px; padding: 3px; border-radius: var(--r-pill);
+        border: 1px solid var(--n-line-strong); background: var(--n-glass); -webkit-backdrop-filter: var(--n-blur); backdrop-filter: var(--n-blur);
+        box-shadow: 0 6px 18px rgba(20, 2, 16, 0.3);
+      }
+      .x-avt[hidden] { display: none; }
+      .x-avt button { position: relative; display: grid; place-items: center; width: 44px; height: 32px; border-radius: var(--r-pill); color: #f3d3dc; transition: background var(--dur-quick) ease, color var(--dur-quick) ease; }
+      .x-avt button::before { content: ""; position: absolute; inset: -6px 0; }
+      .x-avt button[aria-checked="true"] { background: var(--n-gold); color: #3b1230; box-shadow: 0 0 12px rgba(232, 196, 168, 0.35); }
+      .x-avt button:focus-visible { outline: 2px solid #e8c4a8; outline-offset: 2px; }
+      .x-app.x-streaming #count { display: none; }
+      .x-app.x-streaming.is-empty .x-stage { display: block; }
+      .x-app.x-streaming.is-empty #nowEmpty { display: none !important; }
+      .x-app.x-streaming.is-empty .x-seek, .x-app.x-streaming.is-empty .x-times { opacity: 1; pointer-events: auto; }
+      /* Chips: a full 44px tap target on phones */
+      @media (max-width: 899px) {
+        .x-chip { box-sizing: border-box; height: auto; min-height: 46px; min-width: var(--tap); }
+        .x-chips { padding-top: 6px; padding-bottom: 6px; }
+      }
+      /* The player: kept alive but out of sight for songs, shown at 16:9 for video */
+      .x-sv { position: absolute; left: 0; top: 0; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }
+      .x-sv iframe { display: block; width: 100%; height: 100%; border: 0; }
+      .x-app.x-sv-video .x-art { display: none; }
+      .x-app.x-sv-video .x-sv {
+        position: relative; width: 100%; height: auto; aspect-ratio: 16 / 9; opacity: 1; pointer-events: auto;
+        border-radius: 20px; background: #14020f;
+        box-shadow: 0 24px 60px rgba(20, 2, 16, 0.6), 0 0 0 1px rgba(232, 196, 168, 0.4), 0 0 30px rgba(201, 138, 155, 0.22);
+      }
+      .x-quality .x-yt-tag { margin-right: 6px; }
+      /* Search: On YouTube */
+      .x-yt-thumb.x-sv-thumb { width: 48px; height: 48px; border-radius: 10px; }
+      .x-sv-msg[hidden], .x-sv-card[hidden] { display: none; }
+      .x-sv-msg { margin: 0 0 8px; }
+      .x-sv-card {
+        display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 12px 12px 16px;
+        border-radius: var(--r-m); border: 1px solid var(--n-line-strong); background: var(--n-glass);
+        -webkit-backdrop-filter: var(--n-blur); backdrop-filter: var(--n-blur);
+      }
+      .x-sv-card p { margin: 0; font: var(--type-small); color: var(--n-blush); }
+      .x-sv-card .x-add { flex: none; }
+      #srYTList .x-row__dur { flex: none; padding-left: 8px; }
+      /* Settings: YouTube key */
+      .x-sv-key { display: flex; flex-direction: column; gap: 8px; margin: 0; }
+      .x-sv-key__row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+      .x-sv-key__status { margin: 0; font: var(--type-small); color: var(--text-secondary); }
+      .x-sv-key__status[data-state="ok"] { color: #e8c4a8; }
+      .x-sv-key__status[data-state="bad"] { color: #ffb3c0; }
+      .x-sv-key__save { flex: none; min-height: var(--tap); padding: 0 22px; border-radius: var(--r-pill); font: var(--type-label); }
     </style>
       <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png" />
@@ -1176,6 +1229,14 @@
               <p class="x-brand"><img class="x-brand__badge" id="brandBadge" src="neska-emblem.png" alt="" width="36" height="36" /><span class="x-brand__txt"><span class="x-brand__name">Neska<span class="x-tm">™</span> Music</span><span class="x-brand__tag">Global Sound</span></span></p>
               <div class="x-top">
                 <p class="x-eyebrow">Now playing</p>
+                <div class="x-avt" id="svMode" role="radiogroup" aria-label="Show song as" hidden>
+                  <button type="button" role="radio" data-m="audio" aria-checked="true" aria-label="Song">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3.5" y="14" width="4.5" height="6.5" rx="1.6"/><rect x="16" y="14" width="4.5" height="6.5" rx="1.6"/></svg>
+                  </button>
+                  <button type="button" role="radio" data-m="video" aria-checked="false" aria-label="Video">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="6" width="13.5" height="12" rx="2.5"/><path d="m16 10.5 5.5-3.2v9.4L16 13.5"/></svg>
+                  </button>
+                </div>
                 <div class="x-top__r">
                   <span class="x-speed" id="speedBadge" hidden></span>
                   <p class="x-count" id="count"></p>
@@ -1188,6 +1249,7 @@
 
               <div class="x-stage">
                 <div class="x-art is-paused" id="art" aria-label="Artwork. Swipe left or right to skip." role="img"><canvas id="artCanvas" width="640" height="640"></canvas></div>
+                <div class="x-sv" id="svBox"><div id="svHost"></div></div>
                 <div class="x-lyr" id="lyr" role="region" aria-label="Lyrics" hidden>
                   <div class="x-lyr__scroll" id="lyrScroll" tabindex="0"><p class="x-lyr__msg" id="lyrMsg"></p><ol class="x-lyr__lines" id="lyrLines"></ol></div>
                   <div class="x-lyr__bar"><p class="x-lyr__credit" id="lyrCredit"></p><button type="button" class="x-lyr__edit" id="lyrEdit" aria-haspopup="dialog">Edit lyrics</button></div>
@@ -1318,6 +1380,15 @@
               <div class="x-sr-sec" id="srSongs" hidden><h2 class="x-shelf__title">Songs</h2><ul class="x-list" id="srSongList"></ul></div>
               <div class="x-sr-sec" id="srPls" hidden><h2 class="x-shelf__title">Playlists</h2><ul class="x-list" id="srPlList"></ul></div>
               <p class="x-empty" id="srNone" role="status" hidden></p>
+              <div class="x-sr-sec" id="srYT" hidden>
+                <h2 class="x-shelf__title">On YouTube</h2>
+                <div class="x-sv-card" id="srYTKey" hidden>
+                  <p>Add your YouTube key in Settings to search all songs</p>
+                  <button type="button" class="x-add" id="srYTKeyBtn" aria-haspopup="dialog">Settings</button>
+                </div>
+                <p class="x-pl-sub x-sv-msg" id="srYTMsg" role="status" hidden></p>
+                <ul class="x-list" id="srYTList"></ul>
+              </div>
             </div>
           </section>
 
@@ -1641,6 +1712,18 @@
               </div>
               <button type="button" class="x-offset__clear" id="offClear" aria-haspopup="dialog">Remove all offline songs</button>
             </div>
+            <p class="x-set__label">YouTube search</p>
+            <form class="x-sv-key" id="ytKeyForm" novalidate>
+              <div class="x-field x-field--pw">
+                <label class="x-pl-label" for="ytKeyInput">YouTube API key</label>
+                <input id="ytKeyInput" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" maxlength="200" />
+                <button type="button" class="x-field__show" id="ytKeyShow" aria-pressed="false">Show</button>
+              </div>
+              <div class="x-sv-key__row">
+                <p class="x-sv-key__status" id="ytKeyStatus" role="status" data-state="none">Not set</p>
+                <button type="submit" class="x-pl-ok x-sv-key__save" id="ytKeySave">Save</button>
+              </div>
+            </form>
             <p class="x-set__label">Studio sound</p>
             <div>
               <button type="button" class="x-set__row" id="studioSw" role="switch" aria-checked="false">
@@ -4113,6 +4196,14 @@
     seek: function (t) { seekTo(t); updateTime(); updatePositionState(); }, // also ends a running crossfade cleanly
     tracks: function () { return tracks; },
     isLoading: function () { return loading; }, // a song asked for is loading or buffering (event: neska-loading)
+    // after a YouTube stream: Now Playing, controls and the lock screen show Neska's own song again
+    renderNow: function () { if (tracks.length) renderTrack(); else setEmpty(); updateTime(); syncPlaying(); },
+    mediaRestore: function () {
+      if (!("mediaSession" in navigator)) return;
+      if (handlers) Object.keys(handlers).forEach(function (k) { try { navigator.mediaSession.setActionHandler(k, handlers[k]); } catch (e) {} });
+      if (tracks[cur]) setMediaSession(tracks[cur]); else { try { navigator.mediaSession.metadata = null; } catch (e) {} }
+      updatePositionState();
+    },
     isBlocked: null // set by the cloud script: true when offline and the song has no offline copy
 
   };
@@ -5450,6 +5541,35 @@
       return api("/storage/v1/object/songs/" + encPath(p), { method: "POST", headers: { "x-upsert": "true" }, body: list.map(ytRow) });
     }
   };
+  /* Settings: songs/<user_id>/settings.json ({ ytkey }), same storage calls as youtube.json */
+  function setPath() { return S && S.access && S.user && S.user.id ? S.user.id + "/settings.json" : null; }
+  window.NeskaCloud.settings = {
+    uid: window.NeskaCloud.yt.uid,
+    // the saved object, or {} when the file doesn't exist yet
+    load: function () {
+      var p = setPath();
+      if (!p) return Promise.reject(new Error("No account id"));
+      return sign(p).then(function (u) {
+        return fetch(u + (u.indexOf("?") < 0 ? "?" : "&") + "cb=" + Date.now(), { cache: "no-store" }).then(function (r) {
+          if (r.status === 400 || r.status === 404) return {};
+          if (!r.ok) throw new Error("Download failed (" + r.status + ")");
+          return r.text().then(function (t) {
+            if (!t || !t.trim()) return {};
+            var o = JSON.parse(t);
+            return o && typeof o === "object" && !Array.isArray(o) ? o : {};
+          });
+        });
+      }, function (e) {
+        if (ytMissing(e)) return {};
+        throw e;
+      });
+    },
+    save: function (obj) {
+      var p = setPath();
+      if (!p) return Promise.reject(new Error("No account id"));
+      return api("/storage/v1/object/songs/" + encPath(p), { method: "POST", headers: { "x-upsert": "true" }, body: obj || {} });
+    }
+  };
   /* ===== Offline songs, part 2: offline library, Save all, settings row, queued play counts ===== */
   var offS = null;          // the remembered sign-in while offline since opening (S stays null until back online)
   var libOffline = false;   // the library on screen was built from the saved copy
@@ -5918,6 +6038,7 @@
   P.audios.forEach(function (el) {
     ["timeupdate", "seeked"].forEach(function (ev) { el.addEventListener(ev, function () { if (el === P.audio()) sync(ev === "seeked"); }); });
   });
+  window.addEventListener("neska-stream-time", function (e) { sync(!!(e.detail && e.detail.jump)); }); // YouTube songs have no timeupdate
   ["wheel", "touchmove"].forEach(function (ev) { scroller.addEventListener(ev, function () { userScrollUntil = Date.now() + 3000; }, { passive: true }); });
   linesEl.addEventListener("click", function (e) {
     var li = e.target.closest && e.target.closest("li");
@@ -6601,7 +6722,20 @@
     dur: function () { try { return ok() ? yp.getDuration() || 0 : 0; } catch (e) { return 0; } },
     seek: function (t) { if (ok()) { try { yp.seekTo(t, true); } catch (e) {} } },
     multi: function () { return !single; },
-    shuffled: function () { return shuf; }
+    shuffled: function () { return shuf; },
+    // shared with on-demand songs (NeskaStream)
+    loadApi: loadApi,
+    stopForStream: function () { // a streamed song started: this player pauses and stops counting as live
+      ytLive = false;
+      if (!ok()) return;
+      try { var s = yp.getPlayerState(); if (s === 1 || s === 3) yp.pauseVideo(); } catch (e) {}
+    },
+    addVideo: function (id, title, thumb) { // false when it's already in the list
+      var it = { id: id, kind: "video", title: String(title || "YouTube video").slice(0, 200), thumb: thumb || "https://i.ytimg.com/vi/" + id + "/hqdefault.jpg", added: Date.now() };
+      if (find(it)) return false;
+      ver++; items.push(it); pushAdd(it); render();
+      return true;
+    }
   };
 
   render();
@@ -6842,6 +6976,612 @@
 })();
     </script>
     <script>
+/* ===== On-demand YouTube songs (window.NeskaStream): search, Now Playing, Audio/Video, radio mix =====
+   Playback only through the embedded IFrame player; nothing is downloaded or extracted. */
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var P = window.NeskaPlayer, Y = window.NeskaYT;
+  if (!P || !Y || !Y.loadApi || !$("svHost")) return;
+  var app = $("app"), API = "https://www.googleapis.com/youtube/v3/";
+  var K_KEY = "neska.ytkey", K_CACHE = "neska.ytcache", K_MODE = "neska.ytmode", K_META = "neska.ytmeta", K_IOS = "neska.ytiosnote";
+  var isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }
+  function lsJSON(k, def) { try { var v = JSON.parse(lsGet(k) || "null"); return v && typeof v === "object" ? v : def; } catch (e) { return def; } }
+  function fmt(s) {
+    if (!isFinite(s) || s <= 0) return "--:--";
+    s = Math.floor(s);
+    var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), x = s % 60;
+    return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(x).padStart(2, "0");
+  }
+  function desk() { return !!(window.matchMedia && window.matchMedia("(min-width: 900px)").matches); }
+
+  /* ---------- Cleaning titles and channel names ---------- */
+  var decoder = document.createElement("textarea");
+  function decode(s) { decoder.innerHTML = String(s || ""); return decoder.value; }
+  var JUNK = /\s*[\[(（【][^\])）】]*\b(official|lyrics?|audio|video|visuali[sz]er|hd|hq|4k|mv|m\/v|remaster(ed)?|color coded|explicit|clean)\b[^\])）】]*[\])）】]/gi;
+  function cleanArtist(a) {
+    return decode(a).replace(/\s*-\s*Topic$/i, "").replace(/\s*VEVO$/i, "").replace(/VEVO$/, "").replace(/\s*official$/i, "").trim() || "YouTube";
+  }
+  function squash(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9\u00c0-\uffff]/g, ""); }
+  function clean(rawTitle, rawChannel) {
+    var title = decode(rawTitle).replace(JUNK, "").replace(/\s*\|\s*(official|lyrics?|audio|video).*$/i, "").replace(/\s{2,}/g, " ").trim();
+    var artist = cleanArtist(rawChannel);
+    var parts = title.split(/\s+[-–—]\s+/);
+    if (parts.length >= 2) {
+      var left = parts[0].trim(), a = squash(artist), l = squash(left);
+      if (a && l && (l.indexOf(a) > -1 || a.indexOf(l) > -1) || /vevo|topic/i.test(rawChannel || "")) { artist = left; title = parts.slice(1).join(" - ").trim(); }
+    }
+    title = title.replace(/^["“]|["”]$/g, "").trim();
+    return { title: title || decode(rawTitle) || "YouTube song", artist: artist };
+  }
+  function isoDur(s) {
+    var m = /^P(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/.exec(String(s || ""));
+    return m ? (+m[1] || 0) * 86400 + (+m[2] || 0) * 3600 + (+m[3] || 0) * 60 + (+m[4] || 0) : 0;
+  }
+
+  /* ---------- Track objects, one per video (so lyrics and likes keep to them) ---------- */
+  var byId = {}, meta = lsJSON(K_META, {});
+  function trackFor(id, title, artist, dur) {
+    var t = byId[id], m = meta[id];
+    if (!t) {
+      t = byId[id] = { id: "yt:" + id, ytId: id, title: (m && m.t) || "YouTube song", artist: (m && m.a) || "YouTube", duration: (m && m.d) || 0, pal: null };
+    }
+    if (title) t.title = title;
+    if (artist) t.artist = artist;
+    if (dur) t.duration = dur;
+    return t;
+  }
+  function keep(t) { // remember a liked song's name for Liked songs on the next visit
+    meta[t.ytId] = { t: t.title, a: t.artist, d: Math.round(t.duration || 0) };
+    lsSet(K_META, JSON.stringify(meta));
+  }
+
+  /* ---------- Key: localStorage, then the account's settings.json ---------- */
+  var keyIn = $("ytKeyInput"), keyStatus = $("ytKeyStatus"), keySave = $("ytKeySave");
+  function getKey() { return (lsGet(K_KEY) || "").trim(); }
+  function status(state) {
+    keyStatus.dataset.state = state;
+    keyStatus.textContent = state === "ok" ? "Connected" : state === "bad" ? "Key rejected" : state === "busy" ? "Checking…" : "Not set";
+  }
+  status(getKey() ? "ok" : "none");
+  keyIn.value = getKey();
+  function cloudSet() { var c = window.NeskaCloud && window.NeskaCloud.settings; return c && c.uid() ? c : null; }
+  function pushKey(k) {
+    var c = cloudSet(); if (!c) return;
+    c.save({ ytkey: k }).catch(function () { P.toast("Couldn't sync your YouTube key", true); });
+  }
+  function pullKey() {
+    var c = cloudSet(); if (!c || getKey()) return;
+    c.load().then(function (o) {
+      var k = o && typeof o.ytkey === "string" ? o.ytkey.trim() : "";
+      if (!k || getKey()) return;
+      lsSet(K_KEY, k); keyIn.value = k; status("ok");
+      if (lastQ) search(lastQ, true);
+    }, function () {});
+  }
+  window.addEventListener("neska:auth", function () { setTimeout(pullKey, 0); });
+  setTimeout(pullKey, 1500);
+  $("ytKeyShow").addEventListener("click", function () {
+    var show = keyIn.type === "password";
+    keyIn.type = show ? "text" : "password";
+    this.textContent = show ? "Hide" : "Show"; this.setAttribute("aria-pressed", String(show));
+  });
+  $("ytKeyForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var k = keyIn.value.trim();
+    if (!k) { lsSet(K_KEY, null); status("none"); pushKey(""); P.toast("YouTube key removed"); renderYT(); return; }
+    status("busy"); keySave.disabled = true;
+    fetch(API + "videos?part=id&id=dQw4w9WgXcQ&key=" + encodeURIComponent(k)).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (j) { return { ok: r.ok, status: r.status, j: j }; });
+    }).then(function (res) {
+      keySave.disabled = false;
+      var why = reason(res.j);
+      if (res.ok || why === "quotaExceeded" || why === "dailyLimitExceeded") {
+        lsSet(K_KEY, k); status("ok"); pushKey(k); P.toast("YouTube search connected");
+        if (lastQ) search(lastQ, true); else renderYT();
+      } else { status("bad"); P.toast("YouTube rejected that key", true); }
+    }, function () {
+      keySave.disabled = false; status(getKey() ? "ok" : "none");
+      P.toast("Couldn't reach YouTube. Check your connection.", true);
+    });
+  });
+  function reason(j) { try { return (j.error.errors[0] || {}).reason || ""; } catch (e) { return ""; } }
+
+  /* ---------- Search cache: 24 h per query, 60 queries, least recently used out first ---------- */
+  var DAY = 864e5;
+  function cacheGet(q) {
+    var c = lsJSON(K_CACHE, {}), e = c[q];
+    if (!e || !Array.isArray(e.items) || Date.now() - e.t > DAY) return null;
+    e.u = Date.now(); lsSet(K_CACHE, JSON.stringify(c));
+    return e.items;
+  }
+  function cachePut(q, items) {
+    var c = lsJSON(K_CACHE, {}), now = Date.now();
+    Object.keys(c).forEach(function (k) { if (!c[k] || now - c[k].t > DAY) delete c[k]; });
+    c[q] = { t: now, u: now, items: items };
+    var ks = Object.keys(c).sort(function (a, b) { return (c[a].u || 0) - (c[b].u || 0); });
+    while (ks.length > 60) delete c[ks.shift()];
+    lsSet(K_CACHE, JSON.stringify(c));
+  }
+
+  /* ---------- Search: On YouTube ---------- */
+  var qEl = $("q"), sec = $("srYT"), ul = $("srYTList"), msgEl = $("srYTMsg"), keyCard = $("srYTKey");
+  var results = [], lastQ = "", seq = 0, debT = 0;
+  function norm(s) { return String(s || "").trim().replace(/\s+/g, " ").toLowerCase(); }
+  function msg(text) { msgEl.textContent = text || ""; msgEl.hidden = !text; }
+  function renderYT() {
+    var q = norm(qEl.value), on = q.length >= 2;
+    sec.hidden = !on;
+    if (!on) return;
+    var has = !!getKey();
+    keyCard.hidden = has;
+    if (!has) { ul.innerHTML = ""; msg(""); }
+    if (results.length) $("srNone").hidden = true;
+  }
+  function rowsYT() {
+    ul.innerHTML = "";
+    var curId = active && cur ? cur.ytId : "";
+    results.forEach(function (t, i) {
+      var li = document.createElement("li");
+      var b = document.createElement("button"); b.type = "button"; b.className = "x-row"; b.dataset.i = i;
+      var th = document.createElement("span"); th.className = "x-yt-thumb x-sv-thumb"; th.setAttribute("aria-hidden", "true");
+      var im = document.createElement("img"); im.alt = ""; im.loading = "lazy"; im.decoding = "async";
+      im.src = "https://i.ytimg.com/vi/" + t.ytId + "/mqdefault.jpg"; th.appendChild(im);
+      var txt = document.createElement("span"); txt.className = "x-row__txt";
+      var ti = document.createElement("span"); ti.className = "x-row__title"; ti.textContent = t.title;
+      var su = document.createElement("span"); su.className = "x-row__artist"; su.textContent = t.artist;
+      txt.appendChild(ti); txt.appendChild(su);
+      var du = document.createElement("span"); du.className = "x-row__dur"; du.textContent = t.duration ? fmt(t.duration) : "";
+      b.appendChild(th); b.appendChild(txt); b.appendChild(du);
+      b.setAttribute("aria-label", t.title + " by " + t.artist + (t.duration ? ", " + fmt(t.duration) : "") + ". Play from YouTube");
+      if (t.ytId === curId) { b.classList.add("is-current"); b.setAttribute("aria-current", "true"); }
+      li.appendChild(b); ul.appendChild(li);
+    });
+  }
+  function show(items) {
+    results = items.map(function (x) { return trackFor(x.id, x.title, x.artist, x.dur); });
+    rowsYT();
+    if (!results.length) msg("No YouTube songs found.");
+    renderYT();
+    if (results.length) ensurePlayer();
+  }
+  function search(raw, force) {
+    var q = norm(raw), key = getKey(), my = ++seq;
+    lastQ = q;
+    renderYT();
+    if (q.length < 2 || !key) return;
+    var hit = cacheGet(q);
+    if (hit) { msg(""); show(hit); return; }
+    if (!force && results.length) {} // keep the old rows until new ones arrive
+    msg("Searching YouTube…");
+    fetch(API + "search?part=snippet&type=video&videoCategoryId=10&maxResults=15&q=" + encodeURIComponent(q) + "&key=" + encodeURIComponent(key)).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (j) {
+        if (!r.ok) { var e = new Error("search " + r.status); e.status = r.status; e.reason = reason(j); throw e; }
+        return j;
+      });
+    }).then(function (j) {
+      var list = (j.items || []).filter(function (x) { return x && x.id && x.id.videoId; }).map(function (x) {
+        var c = clean(x.snippet && x.snippet.title, x.snippet && x.snippet.channelTitle);
+        return { id: x.id.videoId, title: c.title, artist: c.artist, dur: 0 };
+      });
+      if (!list.length) return list;
+      return fetch(API + "videos?part=contentDetails,statistics&id=" + list.map(function (x) { return x.id; }).join(",") + "&key=" + encodeURIComponent(key)).then(function (r) {
+        return r.ok ? r.json() : {};
+      }).then(function (v) {
+        var d = {};
+        (v.items || []).forEach(function (x) { d[x.id] = isoDur(x.contentDetails && x.contentDetails.duration); });
+        list.forEach(function (x) { x.dur = d[x.id] || 0; });
+        return list.filter(function (x) { return d[x.id] !== 0 || !(x.id in d); }); // skip live streams (no length)
+      }, function () { return list; });
+    }).then(function (list) {
+      cachePut(q, list);
+      if (my !== seq) return;
+      msg(""); show(list);
+    }, function (e) {
+      if (my !== seq) return;
+      if (e && e.status === 403 && /quotaExceeded|dailyLimitExceeded|rateLimitExceeded/.test(e.reason || "")) msg("Daily YouTube search limit reached. Try again tomorrow.");
+      else if (e && (e.status === 400 || e.status === 403) && /keyInvalid|badRequest|forbidden|accessNotConfigured|ipRefererBlocked/i.test(e.reason || "keyInvalid")) { status("bad"); msg("YouTube rejected your key. Check it in Settings."); }
+      else msg("Couldn't reach YouTube. Check your connection.");
+      results = []; ul.innerHTML = ""; renderYT();
+    });
+  }
+  qEl.addEventListener("input", function () {
+    clearTimeout(debT);
+    var q = norm(qEl.value);
+    if (q.length < 2) { seq++; results = []; ul.innerHTML = ""; msg(""); lastQ = ""; renderYT(); return; }
+    renderYT();
+    var hit = getKey() && cacheGet(q);
+    if (hit) { seq++; lastQ = q; msg(""); show(hit); return; }
+    debT = setTimeout(function () { search(qEl.value); }, 600);
+  });
+  qEl.addEventListener("keydown", function (e) {
+    if (e.key !== "Enter") return;
+    clearTimeout(debT);
+    if (norm(qEl.value) !== lastQ || !results.length) search(qEl.value);
+  });
+  $("tab-search").addEventListener("click", function () { renderYT(); });
+  $("srYTKeyBtn").addEventListener("click", function () {
+    var b = desk() && $("deskSetBtn") ? $("deskSetBtn") : $("setBtn");
+    b.click();
+    setTimeout(function () { try { keyIn.scrollIntoView({ block: "center" }); keyIn.focus({ preventScroll: true }); } catch (e) {} }, 60);
+  });
+  ul.addEventListener("click", function (e) {
+    var b = e.target.closest(".x-row"); if (!b || !results[+b.dataset.i]) return;
+    playTracks(results.slice(+b.dataset.i), 0);
+  });
+
+  /* ---------- The player: one IFrame player in Now Playing ---------- */
+  var yp = null, ready = false, wantId = null, playerP = null;
+  function ensurePlayer() {
+    if (playerP) return playerP;
+    playerP = Y.loadApi().then(function (YT) {
+      return new Promise(function (res) {
+        yp = new YT.Player("svHost", {
+          width: "100%", height: "100%",
+          playerVars: { playsinline: 1, rel: 0, modestbranding: 1, autoplay: 0 },
+          events: {
+            onReady: function () { ready = true; res(yp); if (wantId) { var w = wantId; wantId = null; loadVid(w); } },
+            onStateChange: onState, onError: onErr
+          }
+        });
+      });
+    }, function (e) { playerP = null; throw e; });
+    return playerP;
+  }
+  function loadVid(id) {
+    if (!ready) { wantId = id; return; }
+    try { yp.loadVideoById({ videoId: id }); } catch (e) {}
+  }
+  function pstate() { try { return ready ? yp.getPlayerState() : -1; } catch (e) { return -1; } }
+  function ptime() { try { return ready ? yp.getCurrentTime() || 0 : 0; } catch (e) { return 0; } }
+  function pdur() { try { var d = ready ? yp.getDuration() || 0 : 0; return d || (cur && cur.duration) || 0; } catch (e) { return 0; } }
+  function playing() { var s = pstate(); return s === 1 || s === 3; }
+
+  /* ---------- Stream state ---------- */
+  var active = false, cur = null, queue = [], qi = 0, mixing = false, mixId = "", sShuf = false, sRep = "off";
+  var saved = null, hiddenNow = document.visibilityState === "hidden";
+
+  function enter() {
+    if (active) return;
+    active = true;
+    saved = {
+      shuf: $("shuffleBtn").getAttribute("aria-pressed"), shufL: $("shuffleBtn").getAttribute("aria-label"),
+      rep: $("repeatBtn").dataset.mode, repL: $("repeatBtn").getAttribute("aria-label")
+    };
+    app.classList.add("x-streaming");
+    $("svMode").hidden = false; applyMode();
+    syncModes(); setMedia();
+  }
+  function exit() {
+    if (!active) return;
+    active = false; mixing = false; cur = null;
+    try { if (playing()) yp.pauseVideo(); } catch (e) {}
+    app.classList.remove("x-streaming", "x-sv-video");
+    $("svMode").hidden = true;
+    if (saved) {
+      $("shuffleBtn").setAttribute("aria-pressed", saved.shuf || "false"); $("shuffleBtn").setAttribute("aria-label", saved.shufL || "Shuffle");
+      $("repeatBtn").dataset.mode = saved.rep || "off"; $("repeatBtn").setAttribute("aria-label", saved.repL || "Repeat: off");
+    }
+    P.renderNow(); P.mediaRestore();
+    rowsYT();
+  }
+
+  function playTracks(list, at) {
+    list = (list || []).filter(function (t) { return t && t.ytId; });
+    if (!list.length) return;
+    queue = list.slice(); qi = Math.max(0, Math.min(at || 0, queue.length - 1)); mixing = false;
+    P.stop(); if (Y.stopForStream) Y.stopForStream();
+    enter();
+    start(queue[qi]);
+    if (P.showView) P.showView("now");
+    if (isIOS && !lsGet(K_IOS)) { lsSet(K_IOS, "1"); setTimeout(function () { P.toast("YouTube songs pause when your phone locks. Your own songs keep playing."); }, 400); }
+  }
+  function start(t) {
+    cur = t; render();
+    ensurePlayer().then(function () { if (cur === t && !mixing) loadVid(t.ytId); }, function () { P.toast("Couldn't reach YouTube.", true); });
+    if (ready) loadVid(t.ytId);
+  }
+  function step(dir, auto) {
+    if (!active) return;
+    if (mixing) { try { if (dir > 0) yp.nextVideo(); else yp.previousVideo(); } catch (e) {} return; }
+    if (dir < 0 && ptime() > 3) { try { yp.seekTo(0, true); } catch (e) {} return; }
+    var n = queue.length, i;
+    if (sShuf && n > 1 && dir > 0) { do { i = Math.floor(Math.random() * n); } while (i === qi); }
+    else i = qi + dir;
+    if (i >= n) { if (sRep === "all" || !auto) i = 0; else { setPlayUI(false); return; } }
+    if (i < 0) i = sRep === "all" ? n - 1 : 0;
+    qi = i; start(queue[qi]);
+  }
+  function toggle() {
+    if (!active || !cur) return;
+    if (!ready) { ensurePlayer(); return; }
+    if (playing()) yp.pauseVideo();
+    else { if (pstate() === -1 || pstate() === 5) loadVid(cur.ytId); else yp.playVideo(); }
+  }
+  function seek(s) { if (ready) { try { yp.seekTo(Math.max(0, s), true); } catch (e) {} } tick(true); }
+
+  function onState(e) {
+    var s = e.data;
+    if (!active) { if (s === 1) { try { yp.pauseVideo(); } catch (x) {} } return; }
+    if (s === 1) {
+      if (!P.audio().paused) P.stop();
+      if (Y.stopForStream) Y.stopForStream();
+    }
+    if (mixing && (s === 1 || s === -1 || s === 3)) readMix();
+    if (s === 0 && !mixing) {
+      if (sRep === "one") { try { yp.seekTo(0, true); yp.playVideo(); } catch (x) {} }
+      else step(1, true);
+    }
+    setPlayUI(s === 1 || s === 3);
+    tick();
+  }
+  function onErr(e) {
+    if (!active) return;
+    if (!hiddenNow) P.toast((cur ? cur.title + " can't" : "This song can't") + " play here.", true);
+    if (!mixing && queue.length > 1 && (e.data === 100 || e.data === 101 || e.data === 150 || e.data === 2 || e.data === 5)) setTimeout(function () { if (active) step(1, true); }, 1200);
+  }
+  // iOS pauses embedded video when the screen locks: no error, just the paused state
+  document.addEventListener("visibilitychange", function () {
+    hiddenNow = document.visibilityState === "hidden";
+    if (!hiddenNow && active) { setPlayUI(playing()); tick(true); }
+  });
+
+  /* ---------- Radio mix: YouTube's own RD<videoId> list in the same player ---------- */
+  function readMix() {
+    var d; try { d = yp.getVideoData() || {}; } catch (e) { d = {}; }
+    if (!d.video_id || d.video_id === mixId) return;
+    mixId = d.video_id;
+    var c = clean(d.title || "", d.author || "");
+    var t = trackFor(d.video_id, d.title ? c.title : "", d.author ? c.artist : "");
+    cur = t; render();
+  }
+  function mix() {
+    if (!active || !cur) return;
+    var t = cur;
+    ensurePlayer().then(function () {
+      mixing = true; mixId = t.ytId;
+      try { yp.loadPlaylist({ list: "RD" + t.ytId, listType: "playlist", index: 0, startSeconds: ptime() }); } catch (e) { mixing = false; return; }
+      syncModes(); render();
+      P.toast("Mix started from " + t.title);
+    }, function () { P.toast("Couldn't reach YouTube.", true); });
+  }
+
+  /* ---------- Now Playing for a stream ---------- */
+  var imgs = {};
+  function artImg(id, cb) {
+    if (imgs[id]) { if (imgs[id].complete && imgs[id].naturalWidth) cb(imgs[id]); else imgs[id].addEventListener("load", function () { cb(imgs[id]); }); return; }
+    var im = new Image(), tried = false;
+    im.decoding = "async";
+    im.onload = function () {
+      if (im.naturalWidth <= 120 && !tried) { tried = true; im.src = "https://i.ytimg.com/vi/" + id + "/hqdefault.jpg"; return; } // no maxres: YouTube's grey placeholder
+      cb(im);
+    };
+    im.onerror = function () { if (!tried) { tried = true; im.src = "https://i.ytimg.com/vi/" + id + "/hqdefault.jpg"; } };
+    imgs[id] = im;
+    im.src = "https://i.ytimg.com/vi/" + id + "/maxresdefault.jpg";
+  }
+  function drawSquare(cv, im) { // the centre square of the 16:9 picture, past any letterbox bars
+    var g = cv.getContext("2d"), w = im.naturalWidth, h = im.naturalHeight, s = Math.min(h, w * 9 / 16, w);
+    g.clearRect(0, 0, cv.width, cv.height);
+    g.drawImage(im, (w - s) / 2, (h - s) / 2, s, s, 0, 0, cv.width, cv.height);
+  }
+  function paintArt(t) {
+    [$("artCanvas"), $("miniCanvas")].forEach(function (cv) { if (cv) P.paintKey(cv, t.id); });
+    artImg(t.ytId, function (im) {
+      if (cur !== t || !active) return;
+      [$("artCanvas"), $("miniCanvas")].forEach(function (cv) { if (cv) drawSquare(cv, im); });
+    });
+  }
+  function render() {
+    if (!active || !cur) return;
+    var t = cur;
+    $("title").textContent = t.title;
+    $("artist").textContent = t.artist;
+    var q = $("quality"); q.innerHTML = '<span class="x-yt-tag">YouTube</span>'; q.appendChild(document.createTextNode(mixing ? "Radio mix" : "Streaming")); q.hidden = false;
+    $("miniTitle").textContent = t.title; $("miniArtist").textContent = t.artist;
+    document.title = t.title + " · Neska™ Music";
+    $("art").setAttribute("aria-label", "Artwork for " + t.title + ". Swipe left or right to skip.");
+    paintArt(t);
+    var a = $("art"); a.classList.remove("is-in", "is-in-left", "is-in-right"); void a.offsetWidth; a.classList.add("is-in");
+    $("total").textContent = t.duration ? fmt(t.duration) : "--:--";
+    upNext(); setMedia(); rowsYT(); tick(true);
+  }
+  function nextTrack() {
+    if (mixing || !queue.length) return null;
+    if (sRep === "one") return cur;
+    var i = qi + 1;
+    if (i >= queue.length) return sRep === "all" ? queue[0] : null;
+    return sShuf ? null : queue[i];
+  }
+  function upNext() {
+    var n = nextTrack(), b = $("upNext");
+    $("nextLabel").textContent = sRep === "one" ? "On repeat" : "Up next";
+    $("nextTitle").textContent = mixing ? "YouTube radio mix" : n ? n.title + " · " + n.artist : sShuf && queue.length > 1 ? "Shuffled" : "End of queue";
+    var cv = $("nextCanvas");
+    if (n) { P.paintKey(cv, n.id); artImg(n.ytId, function (im) { if (nextTrack() === n) drawSquare(cv, im); }); }
+    else P.paint(cv, null);
+    b.setAttribute("aria-label", mixing ? "Up next: YouTube radio mix" : n ? "Up next: " + n.title + ". Play it now" : "End of queue");
+  }
+  function setPlayUI(on) {
+    if (!active) return;
+    app.classList.toggle("is-playing", on);
+    $("art").classList.toggle("is-paused", !on);
+    ["playBtn", "miniPlay"].forEach(function (id) {
+      var b = $(id); b.classList.toggle("is-playing", on); b.classList.remove("is-loading");
+      b.setAttribute("aria-label", on ? "Pause" : "Play");
+    });
+    if ("mediaSession" in navigator) { try { navigator.mediaSession.playbackState = on ? "playing" : "paused"; } catch (e) {} }
+  }
+  function syncModes() {
+    var sh = $("shuffleBtn"), rp = $("repeatBtn");
+    sh.setAttribute("aria-pressed", String(sShuf)); sh.setAttribute("aria-label", sShuf ? "Shuffle: on" : "Shuffle: off");
+    rp.dataset.mode = sRep; rp.setAttribute("aria-label", "Repeat: " + sRep);
+  }
+
+  /* ---------- Time, polled every 250 ms ---------- */
+  var lastPos = 0, seekDrag = null;
+  function tick(jump) {
+    if (!active) return;
+    var d = pdur(), c = seekDrag ? seekDrag.r * d : ptime();
+    if (cur && d && !cur.duration) cur.duration = d;
+    var r = d ? Math.max(0, Math.min(1, c / d)) : 0;
+    $("seekFill").style.width = r * 100 + "%"; $("seekThumb").style.left = r * 100 + "%";
+    var lf = 0; try { lf = ready ? yp.getVideoLoadedFraction() || 0 : 0; } catch (e) {}
+    $("seekBuf").style.width = Math.min(100, lf * 100) + "%";
+    $("elapsed").textContent = fmt(c) === "--:--" ? "0:00" : fmt(c);
+    $("total").textContent = d ? fmt(d) : "--:--";
+    var s = $("seek");
+    s.setAttribute("aria-valuemax", String(Math.floor(d))); s.setAttribute("aria-valuenow", String(Math.floor(c)));
+    s.setAttribute("aria-valuetext", fmt(c) + " of " + fmt(d));
+    try { window.dispatchEvent(new CustomEvent("neska-stream-time", { detail: { jump: !!jump } })); } catch (e) {}
+    var n = Date.now();
+    if ((jump || n - lastPos > 4000) && d && "mediaSession" in navigator && navigator.mediaSession.setPositionState) {
+      lastPos = n; try { navigator.mediaSession.setPositionState({ duration: d, playbackRate: 1, position: Math.min(d, c) }); } catch (e) {}
+    }
+  }
+  setInterval(function () {
+    if (!active) return;
+    // the YouTube playlist player took over: hand Now Playing back
+    if (Y.live && Y.live() && Y.playing && Y.playing()) { exit(); return; }
+    ["playBtn", "prevBtn", "nextBtn", "shuffleBtn", "repeatBtn", "miniPlay", "miniNext", "upNext"].forEach(function (id) { var b = $(id); if (b && b.disabled) b.disabled = false; });
+    var sk = $("seek"); if (sk.tabIndex < 0) { sk.tabIndex = 0; sk.setAttribute("aria-disabled", "false"); }
+    var m = $("mini"); if (m && m.hidden && !$("view-now").classList.contains("is-active")) m.hidden = false;
+    if (mixing) readMix();
+    tick();
+  }, 250);
+
+  /* ---------- Neska's own song starts: the stream stops ---------- */
+  P.audio().addEventListener("play", function () { if (active) exit(); });
+
+  /* ---------- Controls: the same buttons, driving the YouTube player while streaming ---------- */
+  window.addEventListener("click", function (e) {
+    if (!active) return;
+    var b = e.target.closest && e.target.closest("#playBtn, #miniPlay, #prevBtn, #nextBtn, #miniNext, #shuffleBtn, #repeatBtn, #upNext");
+    if (!b) return;
+    e.stopPropagation(); e.preventDefault();
+    var id = b.id;
+    if (id === "playBtn" || id === "miniPlay") toggle();
+    else if (id === "nextBtn" || id === "miniNext") step(1, false);
+    else if (id === "prevBtn") step(-1, false);
+    else if (id === "shuffleBtn") { sShuf = !sShuf; syncModes(); upNext(); P.toast(sShuf ? "Shuffle on" : "Shuffle off"); }
+    else if (id === "repeatBtn") { sRep = sRep === "off" ? "all" : sRep === "all" ? "one" : "off"; syncModes(); upNext(); P.toast("Repeat: " + sRep); }
+    else if (id === "upNext") { if (mixing || nextTrack()) step(1, false); }
+  }, true);
+  // seek bar
+  var seekEl = $("seek");
+  function ratioAt(x) { var r = seekEl.getBoundingClientRect(); return r.width ? Math.max(0, Math.min(1, (x - r.left) / r.width)) : 0; }
+  window.addEventListener("pointerdown", function (e) {
+    if (!active || !seekEl.contains(e.target)) return;
+    e.stopPropagation(); e.preventDefault();
+    if (!pdur()) return;
+    seekDrag = { r: ratioAt(e.clientX) }; seekEl.classList.add("is-dragging");
+    try { seekEl.setPointerCapture(e.pointerId); } catch (x) {}
+    tick();
+  }, true);
+  window.addEventListener("pointermove", function (e) {
+    if (!active || !seekDrag) return;
+    e.stopPropagation(); seekDrag.r = ratioAt(e.clientX); tick();
+  }, true);
+  function endDrag(e, commit) {
+    if (!active || !seekDrag) return;
+    e.stopPropagation();
+    var r = seekDrag.r; seekDrag = null; seekEl.classList.remove("is-dragging");
+    if (commit) seek(r * pdur());
+  }
+  window.addEventListener("pointerup", function (e) { endDrag(e, true); }, true);
+  window.addEventListener("pointercancel", function (e) { endDrag(e, false); }, true);
+  // artwork swipe: left for next, right for previous
+  var sw = null, artEl = $("art");
+  window.addEventListener("pointerdown", function (e) {
+    if (!active || !artEl.contains(e.target) || e.button > 0) return;
+    e.stopPropagation(); sw = { x: e.clientX, y: e.clientY };
+  }, true);
+  window.addEventListener("pointerup", function (e) {
+    if (!active || !sw) return;
+    var dx = e.clientX - sw.x, dy = e.clientY - sw.y; sw = null;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) step(dx < 0 ? 1 : -1, false);
+  }, true);
+  // keyboard: Space plays or pauses, arrows seek (Shift+arrows skip on desktop)
+  window.addEventListener("keydown", function (e) {
+    if (!active) return;
+    var tg = e.target, tag = tg && tg.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (tg && (tg.isContentEditable || (tg.closest && tg.closest("#auth, #acct, #setSheet, [role=dialog], .x-avt")))) return;
+    var dk = desk();
+    if (e.key === " " || e.code === "Space") { if (tg && tg.closest && tg.closest("button")) return; e.preventDefault(); e.stopPropagation(); toggle(); }
+    else if (dk && e.shiftKey && (e.key === "ArrowRight" || e.key === "ArrowLeft")) { e.preventDefault(); e.stopPropagation(); step(e.key === "ArrowRight" ? 1 : -1, false); }
+    else if (e.key === "ArrowRight" || e.key === "ArrowLeft") { e.preventDefault(); e.stopPropagation(); seek(ptime() + (e.key === "ArrowRight" ? 1 : -1) * (dk ? 5 : 10)); }
+    else if (tg === seekEl && /^(Home|End|PageUp|PageDown)$/.test(e.key)) {
+      e.preventDefault(); e.stopPropagation();
+      var d = pdur(); seek(e.key === "Home" ? 0 : e.key === "End" ? Math.max(0, d - 0.25) : ptime() + (e.key === "PageUp" ? 30 : -30));
+    }
+  }, true);
+
+  /* ---------- Media Session ---------- */
+  function setMedia() {
+    if (!active || !cur || !("mediaSession" in navigator)) return;
+    var ms = navigator.mediaSession, t = cur;
+    try {
+      if (typeof MediaMetadata !== "undefined") ms.metadata = new MediaMetadata({
+        title: t.title, artist: t.artist, album: "Neska™ Music · YouTube",
+        artwork: [
+          { src: "https://i.ytimg.com/vi/" + t.ytId + "/maxresdefault.jpg", sizes: "1280x720", type: "image/jpeg" },
+          { src: "https://i.ytimg.com/vi/" + t.ytId + "/hqdefault.jpg", sizes: "480x360", type: "image/jpeg" }
+        ]
+      });
+    } catch (e) {}
+    var h = {
+      play: function () { if (!playing()) toggle(); }, pause: function () { if (playing()) toggle(); },
+      previoustrack: function () { step(-1, false); }, nexttrack: function () { step(1, false); },
+      seekbackward: function (d) { seek(ptime() - ((d && d.seekOffset) || 10)); },
+      seekforward: function (d) { seek(ptime() + ((d && d.seekOffset) || 10)); },
+      seekto: function (d) { if (d && d.seekTime != null) seek(d.seekTime); }
+    };
+    Object.keys(h).forEach(function (k) { try { ms.setActionHandler(k, h[k]); } catch (e) {} });
+  }
+
+  /* ---------- Audio / Video toggle ---------- */
+  var modeEl = $("svMode");
+  function mode() { return lsGet(K_MODE) === "video" ? "video" : "audio"; }
+  function applyMode() {
+    var m = mode();
+    [].forEach.call(modeEl.children, function (b) { var on = b.dataset.m === m; b.setAttribute("aria-checked", String(on)); b.tabIndex = on ? 0 : -1; });
+    app.classList.toggle("x-sv-video", active && m === "video");
+  }
+  modeEl.addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    lsSet(K_MODE, b.dataset.m); applyMode();
+  });
+  modeEl.addEventListener("keydown", function (e) {
+    if (!/^Arrow(Left|Right|Up|Down)$/.test(e.key)) return;
+    e.preventDefault(); e.stopPropagation();
+    var nx = mode() === "audio" ? "video" : "audio";
+    lsSet(K_MODE, nx); applyMode();
+    try { modeEl.querySelector('[data-m="' + nx + '"]').focus(); } catch (x) {}
+  });
+
+  /* ---------- The current song, for the chip row, lyrics and the mini player ---------- */
+  var origCurrent = P.current, origTime = P.time, origDur = P.dur, origSeek = P.seek;
+  P.current = function () { return active && cur ? cur : origCurrent(); };
+  P.time = function () { return active ? ptime() : origTime(); };
+  P.dur = function () { return active ? pdur() : origDur(); };
+  P.seek = function (s) { if (active) seek(s); else origSeek(s); };
+
+  window.NeskaStream = {
+    active: function () { return active; },
+    current: function () { return active ? cur : null; },
+    playTracks: playTracks,
+    trackFor: function (id) { return trackFor(id); },
+    keep: keep,
+    mix: mix,
+    stop: exit,
+    clean: clean
+  };
+})();
+    </script>
+    <script>
 /* ===== Now Playing chip row: Like, Lyrics, Offline, Share, Mix, Add to playlist; Liked songs playlist ===== */
 (function () {
   "use strict";
@@ -6852,7 +7592,8 @@
   var chips = ["chipLike", "lyrBtn", "chipOff", "chipShare", "chipMix", "chipAdd"].map($);
   var likeBtn = $("chipLike"), offBtn = $("chipOff"), offTxt = $("chipOffTxt");
 
-  function keyOf(t) { return t ? (t.cloudId || (t.title + "|" + t.artist)) : ""; }
+  function keyOf(t) { return t ? (t.ytId ? "yt:" + t.ytId : t.cloudId || (t.title + "|" + t.artist)) : ""; }
+  function S() { return window.NeskaStream || null; } // on-demand YouTube songs
   function readLikes() {
     try { var a = JSON.parse(localStorage.getItem(LKEY) || "[]"); return Array.isArray(a) ? a.filter(function (k) { return typeof k === "string"; }) : []; }
     catch (e) { return []; }
@@ -6897,6 +7638,7 @@
     var t = P.current(); if (!t) return;
     var k = keyOf(t), i = likes.indexOf(k);
     if (i > -1) likes.splice(i, 1); else likes.push(k);
+    if (t.ytId && i < 0 && S()) S().keep(t); // its title and artist, for Liked songs
     writeLikes(); syncLike(t); renderLiked();
     P.toast(i > -1 ? "Removed from Liked songs" : "Added to Liked songs");
   });
@@ -6933,7 +7675,7 @@
   }
   $("chipShare").addEventListener("click", function () {
     var t = P.current(); if (!t) return;
-    var url = location.origin, data = { title: t.title, text: "Listening to " + t.title + " by " + t.artist + " on Neska Music", url: url };
+    var url = t.ytId ? "https://youtu.be/" + t.ytId : location.origin, data = { title: t.title, text: "Listening to " + t.title + " by " + t.artist + " on Neska Music", url: url };
     if (navigator.share) {
       navigator.share(data).catch(function (e) { if (!e || e.name !== "AbortError") copyLink(url); });
     } else copyLink(url);
@@ -6942,6 +7684,7 @@
   /* ---------- Mix: same artist (max 3), often played, then the rest; 25 max ---------- */
   $("chipMix").addEventListener("click", function () {
     var t = P.current(); if (!t) return;
+    if (t.ytId) { if (S()) S().mix(); return; } // YouTube's own radio mix
     var norm = function (s) { return String(s || "").trim().toLowerCase(); };
     var artist = norm(t.artist), seen = {};
     seen[keyOf(t)] = true;
@@ -6963,14 +7706,21 @@
 
   /* ---------- Add to playlist: the library's sheet ---------- */
   $("chipAdd").addEventListener("click", function () {
-    var t = P.current(); if (!t || typeof window.NeskaAddToPlaylist !== "function") return;
+    var t = P.current(); if (!t) return;
+    if (t.ytId) { // a streamed song joins the YouTube list as a video
+      var Y = window.NeskaYT;
+      if (!Y || !Y.addVideo) return;
+      P.toast(Y.addVideo(t.ytId, t.title + " · " + t.artist, "https://i.ytimg.com/vi/" + t.ytId + "/hqdefault.jpg") ? "Added " + t.title + " to your YouTube list" : "Already in your YouTube list");
+      return;
+    }
+    if (typeof window.NeskaAddToPlaylist !== "function") return;
     window.NeskaAddToPlaylist(t, $("chipAdd"));
   });
 
   // aria-disabled chips stay focusable; swallow their taps before any handler runs
   $("npChips").addEventListener("click", function (e) {
     var c = e.target.closest && e.target.closest(".x-chip");
-    if (c && c.getAttribute("aria-disabled") === "true") { e.stopImmediatePropagation(); e.preventDefault(); }
+    if (c && c.getAttribute("aria-disabled") === "true") { e.stopImmediatePropagation(); e.preventDefault(); P.toast("Play a song first"); }
   }, true);
 
   /* ---------- Liked songs: a read-only smart playlist at the top of Playlists ---------- */
@@ -6978,14 +7728,20 @@
   function likedTracks() {
     var by = {};
     P.tracks().forEach(function (t) { var k = keyOf(t); if (!by[k]) by[k] = t; });
-    return likes.slice().reverse().map(function (k) { return by[k]; }).filter(Boolean);
+    return likes.slice().reverse().map(function (k) {
+      if (k.indexOf("yt:") === 0) return S() ? S().trackFor(k.slice(3)) : null; // a liked YouTube song
+      return by[k];
+    }).filter(Boolean);
   }
   var likedLi = document.createElement("li");
   likedLi.className = "x-liked";
   likedLi.innerHTML = '<button type="button" class="x-row"><span class="x-liked-tile" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 20.5s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.7c0 5.6-7.5 10.2-7.5 10.2z"/></svg></span><span class="x-row__txt"><span class="x-row__title">Liked songs</span><span class="x-row__artist"></span></span></button>';
   likedLi.addEventListener("click", function (e) {
     e.stopPropagation(); // not one of the saved playlists
-    var it = likedTracks(); if (!it.length) return;
+    var all = likedTracks(); if (!all.length) return;
+    // newest like first: a YouTube song plays the liked YouTube songs as streams, otherwise your own liked songs
+    if (all[0].ytId) { if (S()) S().playTracks(all.filter(function (t) { return t.ytId; }), 0); return; }
+    var it = all.filter(function (t) { return !t.ytId; });
     var at = 0; while (at < it.length - 1 && isBlocked(it[at])) at++;
     if (P.playQueue(it, at, false) !== false) P.showView("now");
   });
