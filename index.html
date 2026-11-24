@@ -7038,6 +7038,34 @@
     title = title.replace(/^["“]|["”]$/g, "").trim();
     return { title: title || decode(rawTitle) || "YouTube song", artist: artist };
   }
+  /* ---------- Find one chart song on YouTube (Home feed); cached for 30 days ---------- */
+  var K_RES = "neska.ytresolve", resPend = {};
+  function resolveSong(title, artist) {
+    var k = (String(artist || "") + "|" + String(title || "")).toLowerCase(), c = lsJSON(K_RES, {}), e = c[k];
+    if (e && e.id && Date.now() - e.t < 30 * DAY) return Promise.resolve(trackFor(e.id, e.ti, e.a, e.d));
+    if (resPend[k]) return resPend[k];
+    var key = getKey();
+    if (!key) return Promise.reject(Object.assign(new Error("nokey"), { code: "nokey" }));
+    var qs = String(artist || "").replace(/\s*(&|,|feat\.?|ft\.?|x)\s.*$/i, "") + " " + String(title || "").replace(/\s*[(\[][^)\]]*(feat|ft|with)[^)\]]*[)\]]/i, "");
+    var p = fetch(API + "search?part=snippet&type=video&videoCategoryId=10&videoEmbeddable=true&maxResults=8&q=" + encodeURIComponent(qs.trim() + " official audio") + "&key=" + encodeURIComponent(key)).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) { var er = new Error("search " + r.status); er.status = r.status; er.reason = reason(j); throw er; } return j; });
+    }).then(function (j) {
+      var tl = String(title || "").toLowerCase().replace(/\s*[(\[].*$/, "").trim();
+      var best = (j.items || []).filter(function (x) { return x && x.id && x.id.videoId; }).map(function (x, i) {
+        var rt = decode(x.snippet.title), rc = decode(x.snippet.channelTitle), sc = musicScore(rt, rc, "") - i * 0.3;
+        if (tl && rt.toLowerCase().indexOf(tl) > -1) sc += 3;
+        return { id: x.id.videoId, sc: sc };
+      }).sort(function (a, b) { return b.sc - a.sc; })[0];
+      delete resPend[k];
+      if (!best) throw Object.assign(new Error("none"), { code: "none" });
+      var cc = lsJSON(K_RES, {}), ks = Object.keys(cc);
+      if (ks.length > 400) ks.sort(function (a, b) { return cc[a].t - cc[b].t; }).slice(0, 100).forEach(function (x) { delete cc[x]; });
+      cc[k] = { id: best.id, ti: title, a: artist, d: 0, t: Date.now() }; lsSet(K_RES, JSON.stringify(cc));
+      return trackFor(best.id, title, artist, 0);
+    }, function (er) { delete resPend[k]; throw er; });
+    resPend[k] = p; return p;
+  }
+
   /* Music-first ranking: official audio (the tracks YouTube Music plays) first, then official videos; covers, mixes, reactions last */
   var ALT = /\b(cover|karaoke|instrumental|reaction|reacts?|slowed|sped ?up|nightcore|8d|bass boosted|tutorial|lesson|dance video|choreography|live|remix|mashup|mix|playlist|full album|lyrics?|lyric video|1 hour|loop)\b/i;
   function musicScore(t, ch, q) {
@@ -7319,6 +7347,7 @@
   }
   function start(t) {
     cur = t; render();
+    if (typeof window.NeskaStream.onStart === "function") { try { window.NeskaStream.onStart(t, qi, queue.length); } catch (e) {} }
     ensurePlayer().then(function () { if (cur === t && !mixing) loadVid(t.ytId); }, function () { P.toast("Couldn't reach YouTube.", true); });
     if (ready) loadVid(t.ytId);
   }
@@ -7615,6 +7644,13 @@
     trackFor: function (id) { return trackFor(id); },
     keep: keep,
     mix: mix,
+    hasKey: function () { return !!getKey(); },
+    append: function (list) { // add songs to the end of the playing stream queue
+      list = (list || []).filter(function (t) { return t && t.ytId; });
+      if (!active || mixing || !list.length) return false;
+      queue = queue.concat(list); return true;
+    },
+    resolve: resolveSong,
     stop: exit,
     clean: clean
   };
@@ -7801,6 +7837,237 @@
   var libEl = $("list");
   if (libEl) new MutationObserver(function () { renderLiked(); sync(); }).observe(libEl, { childList: true });
   renderLiked();
+})();
+    </script>
+    <style>
+      /* ===== Home feed: streaming categories (chart covers from Apple, songs streamed from YouTube) ===== */
+      #homeFeed { margin-top: 14px; }
+      #homeFeed[hidden] { display: none; }
+      .x-fchips { display: flex; gap: 8px; margin: 0 calc(-1 * var(--gutter)); padding: 4px var(--gutter) 6px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+      .x-app .x-fchips { margin-left: calc(-1 * var(--x-padL)); margin-right: calc(-1 * var(--x-padR)); padding-left: var(--x-padL); padding-right: var(--x-padR); }
+      .x-fchips::-webkit-scrollbar { display: none; }
+      .x-fchip { flex: none; min-height: 38px; padding: 0 16px; border-radius: 999px; font: var(--type-label); color: #f7e1cf;
+        background: rgba(255, 240, 245, 0.08); border: 1px solid rgba(232, 196, 168, 0.28); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); transition: transform var(--dur-quick) ease; }
+      .x-fchip:active { transform: scale(0.95); }
+      .x-fchip[aria-pressed="true"] { color: #2a0a22; background: linear-gradient(135deg, #f7e1cf, #e8b4a8); border-color: transparent; box-shadow: 0 0 16px rgba(232, 180, 168, 0.45); }
+      .x-fchip:focus-visible { outline: 2px solid #e8c4a8; outline-offset: 2px; }
+      .x-ftile { position: relative; display: block; width: 140px; }
+      .x-ftile > button.x-fplay { display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 0; text-align: left; color: inherit; background: none; border: 0; transition: transform var(--dur-quick) ease; }
+      .x-ftile > button.x-fplay:active { transform: scale(0.96); }
+      .x-fart { position: relative; display: block; width: 140px; height: 140px; border-radius: 16px; overflow: hidden; background: linear-gradient(135deg, #4a1838, #2a0a22);
+        box-shadow: 0 0 0 1px rgba(232, 196, 168, 0.22), 0 10px 24px rgba(20, 2, 16, 0.35); }
+      .x-fart img { width: 100%; height: 100%; object-fit: cover; display: block; }
+      .x-ftile.is-loading .x-fart::after { content: ""; position: absolute; inset: 0; background: rgba(42, 10, 34, 0.55) radial-gradient(circle, rgba(247, 225, 207, 0.9) 0 4px, transparent 5px) center/100% 100% no-repeat; animation: xfpulse 0.9s ease-in-out infinite alternate; }
+      @keyframes xfpulse { from { opacity: 0.5; } to { opacity: 1; } }
+      .x-ftile.is-playing .x-fart { box-shadow: 0 0 0 2px #e8b4a8, 0 0 20px rgba(232, 180, 168, 0.5); }
+      .x-fnum { position: absolute; left: 8px; bottom: 6px; font: 700 26px/1 var(--n-serif); color: #fff3f6; text-shadow: 0 2px 10px rgba(20, 2, 16, 0.8); }
+      .x-ftile .x-row__title { font: var(--type-label); color: #f7e1cf; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+      .x-ftile .x-row__artist { font: var(--type-caption); display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+      .x-fadd { position: absolute; top: 6px; right: 6px; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: #fff3f6;
+        background: rgba(42, 10, 34, 0.6); border: 1px solid rgba(247, 225, 207, 0.35); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+      .x-fadd:active { transform: scale(0.92); }
+      .x-ftile--artist { width: 112px; text-align: center; }
+      .x-ftile--artist .x-fart { width: 112px; height: 112px; border-radius: 50%; }
+      .x-ftile--artist > button.x-fplay { align-items: center; text-align: center; }
+      .x-fmsg { margin: 8px 0 0; font: var(--type-caption); opacity: 0.8; }
+      .x-fmsg button { color: #f7e1cf; text-decoration: underline; background: none; border: 0; padding: 0; font: inherit; }
+      .x-fhead { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+      .x-fhead .x-shelf__title { margin-bottom: 10px; }
+      .x-fplayall { flex: none; font: var(--type-caption); color: #f7e1cf; padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(232, 196, 168, 0.3); background: none; }
+      @media (min-width: 900px) {
+        .x-fchips { flex-wrap: wrap; overflow: visible; margin-left: 0; margin-right: 0; padding-left: 0; padding-right: 0; }
+        .x-app .x-fchips { margin-left: 0; margin-right: 0; padding-left: 0; padding-right: 0; }
+        #homeFeed .x-shelf__row { scrollbar-width: thin; }
+        .x-ftile { width: 168px; } .x-fart { width: 168px; height: 168px; }
+        .x-ftile--artist { width: 136px; } .x-ftile--artist .x-fart { width: 136px; height: 136px; }
+        .x-ftile .x-fart img { transition: transform var(--dur-quick) ease; }
+        .x-ftile:hover .x-fart img { transform: scale(1.04); }
+      }
+      @media (prefers-reduced-motion: reduce) { .x-ftile.is-loading .x-fart::after { animation: none; } }
+    </style>
+    <script>
+/* ===== Home feed: categories of chart songs with album covers; tap streams through NeskaStream ===== */
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var P = window.NeskaPlayer, rows = $("homeRows");
+  if (!P || !rows) return;
+  var box = document.createElement("div"); box.id = "homeFeed"; box.setAttribute("aria-label", "Stream");
+  rows.parentNode.insertBefore(box, rows);
+  var FEEDS = [
+    { k: "afro", chip: "Afrobeats", title: "Afrobeats hits", url: "ng/rss/topsongs/limit=25/genre=1203" },
+    { k: "global", chip: "Global", title: "Global top songs", url: "us/rss/topsongs/limit=25" },
+    { k: "rnb", chip: "R&B", title: "R&B and soul", url: "ng/rss/topsongs/limit=25/genre=15" },
+    { k: "hiphop", chip: "Hip-Hop", title: "Hip-hop and rap", url: "us/rss/topsongs/limit=25/genre=18" },
+    { k: "uk", chip: "Global", title: "UK top songs", url: "gb/rss/topsongs/limit=25" },
+    { k: "gospel", chip: "Gospel", title: "Gospel and praise", url: "ng/rss/topsongs/limit=25/genre=22" },
+    { k: "reggae", chip: "Reggae", title: "Reggae and dancehall", url: "ng/rss/topsongs/limit=25/genre=24" },
+    { k: "pop", chip: "Pop", title: "Pop favourites", url: "ng/rss/topsongs/limit=25/genre=14" }
+  ];
+  var CHIPS = ["All", "Afrobeats", "Global", "R&B", "Hip-Hop", "Gospel", "Reggae", "Pop"];
+  var K_FEED = "neska.feed", K_CHIP = "neska.feedchip", TTL = 6 * 36e5;
+  var data = {}, chip = "All", pend = [], session = {};
+  try { chip = localStorage.getItem(K_CHIP) || "All"; } catch (e) {}
+  if (CHIPS.indexOf(chip) < 0) chip = "All";
+  function S() { return window.NeskaStream || null; }
+  function lsJ(k) { try { return JSON.parse(localStorage.getItem(k) || "null") || {}; } catch (e) { return {}; } }
+  function art(u, n) { return String(u || "").replace(/\/\d+x\d+bb\.(png|jpg)$/, "/" + n + "x" + n + "bb.jpg"); }
+  function parse(j) {
+    var e = j && j.feed && j.feed.entry; if (!e) return []; if (!Array.isArray(e)) e = [e];
+    return e.map(function (x) {
+      var im = x["im:image"] || [];
+      return { t: (x["im:name"] || {}).label || "", a: (x["im:artist"] || {}).label || "", img: art((im[im.length - 1] || {}).label, 400) };
+    }).filter(function (x) { return x.t && x.a; });
+  }
+  function load() {
+    var c = lsJ(K_FEED), now = Date.now(), need = [];
+    FEEDS.forEach(function (f) { var e = c[f.k]; if (e && Array.isArray(e.items)) data[f.k] = e.items; if (!e || now - e.t > TTL) need.push(f); });
+    render();
+    need.forEach(function (f) {
+      fetch("https://itunes.apple.com/" + f.url + "/json").then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+        var items = parse(j); if (!items.length) return;
+        data[f.k] = items;
+        var cc = lsJ(K_FEED); cc[f.k] = { t: Date.now(), items: items };
+        try { localStorage.setItem(K_FEED, JSON.stringify(cc)); } catch (e) {}
+        render();
+      }).catch(function () { if (!data[f.k]) render(); });
+    });
+  }
+  var ICON_ADD = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
+  function tile(it, i, key, artist) {
+    var li = document.createElement("li"), w = document.createElement("div");
+    w.className = "x-ftile" + (artist ? " x-ftile--artist" : ""); w.dataset.k = key; w.dataset.i = i;
+    var b = document.createElement("button"); b.type = "button"; b.className = "x-fplay";
+    var a = document.createElement("span"); a.className = "x-fart";
+    var im = document.createElement("img"); im.alt = ""; im.loading = "lazy"; im.decoding = "async"; im.src = it.img; a.appendChild(im);
+    if (!artist && key !== "top" && i < 10) { var n = document.createElement("span"); n.className = "x-fnum"; n.textContent = i + 1; a.appendChild(n); }
+    var txt = document.createElement("span"); txt.className = "x-row__txt";
+    var ti = document.createElement("span"); ti.className = "x-row__title"; ti.textContent = artist ? it.a : it.t;
+    txt.appendChild(ti);
+    if (!artist) { var su = document.createElement("span"); su.className = "x-row__artist"; su.textContent = it.a; txt.appendChild(su); }
+    b.appendChild(a); b.appendChild(txt);
+    b.setAttribute("aria-label", artist ? it.a + ". Search songs" : it.t + " by " + it.a + ". Stream");
+    w.appendChild(b);
+    if (!artist) {
+      var add = document.createElement("button"); add.type = "button"; add.className = "x-fadd"; add.innerHTML = ICON_ADD;
+      add.setAttribute("aria-label", "Add " + it.t + " to your YouTube list"); w.appendChild(add);
+    }
+    li.appendChild(w); return li;
+  }
+  function shelf(key, title, items, artist) {
+    var sec = document.createElement("section"); sec.className = "x-shelf"; sec.dataset.key = "f-" + key;
+    var hd = document.createElement("div"); hd.className = "x-fhead";
+    var h = document.createElement("h2"); h.className = "x-shelf__title"; h.textContent = title; hd.appendChild(h);
+    if (!artist) { var pa = document.createElement("button"); pa.type = "button"; pa.className = "x-fplayall"; pa.textContent = "Play all"; pa.dataset.k = key; hd.appendChild(pa); }
+    var ul = document.createElement("ul"); ul.className = "x-shelf__row"; ul.setAttribute("aria-label", title);
+    items.forEach(function (it, i) { ul.appendChild(tile(it, i, key, artist)); });
+    sec.appendChild(hd); sec.appendChild(ul); return sec;
+  }
+  var lists = {};
+  function artists() {
+    var seen = {}, out = [];
+    ["afro", "global", "rnb", "hiphop", "uk"].forEach(function (k) {
+      (data[k] || []).slice(0, 15).forEach(function (x) {
+        var name = x.a.split(/\s*(?:&|,| x |feat\.?|ft\.?)\s*/i)[0].trim(), n = name.toLowerCase();
+        if (name && !seen[n] && out.length < 14) { seen[n] = 1; out.push({ t: name, a: name, img: x.img }); }
+      });
+    });
+    return out;
+  }
+  function render() {
+    var keepX = {};
+    [].forEach.call(box.querySelectorAll(".x-shelf"), function (s) { keepX[s.dataset.key] = s.querySelector(".x-shelf__row").scrollLeft; });
+    box.innerHTML = ""; lists = {};
+    var chips = document.createElement("div"); chips.className = "x-fchips"; chips.setAttribute("role", "group"); chips.setAttribute("aria-label", "Moods and genres");
+    CHIPS.forEach(function (c) {
+      var b = document.createElement("button"); b.type = "button"; b.className = "x-fchip"; b.textContent = c; b.dataset.chip = c;
+      b.setAttribute("aria-pressed", String(c === chip)); chips.appendChild(b);
+    });
+    box.appendChild(chips);
+    var shown = 0;
+    if (chip === "All") {
+      var ar = artists();
+      if (ar.length) { lists.artists = ar; box.appendChild(shelf("artists", "Top artists", ar, true)); shown++; }
+    }
+    FEEDS.forEach(function (f) {
+      if (chip !== "All" && f.chip !== chip) return;
+      var items = data[f.k]; if (!items || !items.length) return;
+      lists[f.k] = items; box.appendChild(shelf(f.k, f.title, items, false)); shown++;
+    });
+    if (!shown) {
+      var m = document.createElement("p"); m.className = "x-fmsg";
+      m.textContent = navigator.onLine === false ? "You're offline. Your own songs are below." : "Loading music…";
+      box.appendChild(m);
+    } else if (S() && !S().hasKey()) {
+      var k = document.createElement("p"); k.className = "x-fmsg";
+      k.innerHTML = 'Add your YouTube key in <button type="button" class="x-fkey">Settings</button> to stream these.';
+      box.appendChild(k);
+    }
+    [].forEach.call(box.querySelectorAll(".x-shelf"), function (s) { if (keepX[s.dataset.key]) s.querySelector(".x-shelf__row").scrollLeft = keepX[s.dataset.key]; });
+    mark();
+  }
+  function mark() {
+    var c = S() && S().current(), id = c && c.ytId;
+    [].forEach.call(box.querySelectorAll(".x-ftile"), function (w) { w.classList.toggle("is-playing", !!id && w.dataset.yt === id); });
+  }
+  function fail(e) {
+    if (e && e.code === "nokey") P.toast("Add your YouTube key in Settings to stream.", true);
+    else if (e && e.status === 403 && /quota|dailyLimit|rateLimit/.test(e.reason || "")) P.toast("Daily YouTube limit reached. Try again tomorrow.", true);
+    else if (e && e.code === "none") P.toast("Couldn't find that song on YouTube.", true);
+    else P.toast("Couldn't reach YouTube.", true);
+  }
+  function busy(w, on) { if (w) w.classList.toggle("is-loading", on); }
+  function playFrom(key, i, w) {
+    var items = lists[key], it = items && items[i], st = S();
+    if (!it || !st) return;
+    busy(w, true);
+    st.resolve(it.t, it.a).then(function (t) {
+      busy(w, false); if (w) w.dataset.yt = t.ytId;
+      session = {}; session[t.ytId] = 1;
+      pend = items.slice(i + 1).map(function (x) { return x; });
+      st.playTracks([t], 0);
+      topUp();
+    }, function (e) { busy(w, false); fail(e); });
+  }
+  var topping = false;
+  function topUp() { // keep one song ready after the current one, found as you go (saves YouTube quota)
+    var st = S(); if (!st || topping || !pend.length) return;
+    var it = pend.shift(); topping = true;
+    st.resolve(it.t, it.a).then(function (t) { topping = false; session[t.ytId] = 1; st.append([t]); }, function () { topping = false; if (pend.length) topUp(); });
+  }
+  var st0 = S();
+  if (st0) st0.onStart = function (t, qi, n) {
+    if (!session[t.ytId]) { pend = []; session = {}; mark(); return; } // something else is playing now
+    if (n - qi <= 1) topUp();
+    mark();
+  };
+  box.addEventListener("click", function (e) {
+    var c = e.target.closest(".x-fchip");
+    if (c) { chip = c.dataset.chip; try { localStorage.setItem(K_CHIP, chip); } catch (er) {} render(); return; }
+    if (e.target.closest(".x-fkey")) { var sb = $("setBtn"); if (window.matchMedia("(min-width: 900px)").matches && $("deskSetBtn")) sb = $("deskSetBtn"); if (sb) sb.click(); return; }
+    var pa = e.target.closest(".x-fplayall");
+    if (pa) { playFrom(pa.dataset.k, 0, box.querySelector('.x-ftile[data-k="' + pa.dataset.k + '"]')); return; }
+    var w = e.target.closest(".x-ftile"); if (!w) return;
+    var key = w.dataset.k, i = +w.dataset.i, it = lists[key] && lists[key][i]; if (!it) return;
+    if (e.target.closest(".x-fadd")) {
+      var Y = window.NeskaYT, st = S(); if (!Y || !Y.addVideo || !st) return;
+      busy(w, true);
+      st.resolve(it.t, it.a).then(function (t) {
+        busy(w, false);
+        P.toast(Y.addVideo(t.ytId, it.t + " · " + it.a, it.img) ? "Added " + it.t + " to your YouTube list" : "Already in your YouTube list");
+      }, function (er) { busy(w, false); fail(er); });
+      return;
+    }
+    if (key === "artists") {
+      var q = $("q"); if (!q) return;
+      $("tab-search").click(); q.value = it.a; q.dispatchEvent(new Event("input", { bubbles: true }));
+      return;
+    }
+    playFrom(key, i, w);
+  });
+  window.addEventListener("online", function () { load(); });
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) load(); });
+  load();
 })();
     </script>
     <script>
