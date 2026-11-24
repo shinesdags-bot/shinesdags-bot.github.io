@@ -139,7 +139,7 @@ function bindLayer(el, i) {
     if (e.target !== L) return;
     const pt = ptIn(el, e);
     if (tool === 'select') { select(null); return; }
-    if (tool === 'text') { snapshot(); const o = { id: uid(), t: 'text', x: pt.x, y: pt.y - props.size * .6, size: props.size, color: props.color, text: '' }; pages[i].objs.push(o); select(o, i); startEdit(o.id); setTool('select'); return; }
+    if (tool === 'text') { e.preventDefault(); setTool('select'); snapshot(); const o = { id: uid(), t: 'text', x: pt.x, y: pt.y - props.size * .6, size: props.size, color: props.color, text: '' }; pages[i].objs.push(o); select(o, i); startEdit(o.id); return; }
     if (tool === 'whiteout' || tool === 'highlight') return dragRect(el, i, pt, e);
     if (tool === 'draw') return drawInk(el, i, pt, e);
   });
