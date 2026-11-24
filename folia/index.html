@@ -78,7 +78,8 @@
 
   <nav class="toolbar" id="toolbar">
     <button data-t="select" class="on"><span>⤧</span>Move</button>
-    <button data-t="text"><span>T</span>Text</button>
+    <button data-t="edittext" id="editTextBtn"><span>Aa</span>Edit text</button>
+    <button data-t="text"><span>T</span>Add text</button>
     <button data-t="whiteout"><span>▭</span>Whiteout</button>
     <button data-t="highlight"><span>▮</span>Highlight</button>
     <button data-t="draw"><span>✎</span>Draw</button>
@@ -86,6 +87,18 @@
     <button data-t="sign"><span>✍</span>Sign</button>
   </nav>
   <input type="file" id="imgInput" accept="image/*" class="vh" aria-label="Choose an image" />
+</section>
+
+<!-- PDF EDIT TEXT (pdfedit) -->
+<section id="ptEd" class="screen hidden">
+  <header class="ed-top">
+    <button class="ib" id="ptCancel" title="Cancel">✕</button>
+    <div class="ed-name">Edit text<small id="ptHint">Tap any text and retype it</small></div>
+    <button class="ib" id="ptUndo" title="Undo">↶</button>
+    <button class="ib" id="ptRedo" title="Redo">↷</button>
+    <button class="save" id="ptDone">Done</button>
+  </header>
+  <div id="ptHost" class="pthost"></div>
 </section>
 
 <!-- PAGES PANEL -->

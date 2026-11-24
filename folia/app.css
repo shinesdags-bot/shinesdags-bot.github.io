@@ -215,3 +215,12 @@ h2{font-size:13px;text-transform:uppercase;letter-spacing:1.2px;color:var(--mute
 }
 .ptx p{min-height:1.2em}
 .pshape.editing .ptx{min-height:1.2em;cursor:text}
+
+/* pdf edit-text (pdfedit) */
+#ptEd{display:flex;flex-direction:column;height:100dvh;background:#e9e8e3}
+#ptEd.hidden{display:none}
+#ptEd .ed-name{display:flex;flex-direction:column;line-height:1.15}#ptEd .ed-name small{color:var(--mute);font-weight:400;font-size:11.5px}
+.pthost{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;position:relative;
+ --pdfedit-chrome:#f7f6f2;--pdfedit-desk:#e9e8e3;--pdfedit-text:#1d1d1b;--pdfedit-muted:#6b6a64;--pdfedit-btn:#fff;--pdfedit-btn-border:#d6d4cc;--pdfedit-border:#d6d4cc;--pdfedit-input-bg:#fff;--pdfedit-accent:#1d6f5f;--pdfedit-on:#dcefe9;--pdfedit-on-text:#123}
+.pthost .pdfedit-toolbar{position:sticky;top:0;z-index:20;flex-wrap:wrap}
+@media(pointer:coarse){.pthost .pdfedit-toolbar button,.pthost .pdfedit-toolbar select{min-height:34px;min-width:34px}}

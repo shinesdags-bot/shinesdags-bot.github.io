@@ -237,7 +237,7 @@ function placeImage(dataURL, wpt) {
 }
 const toPNG = (src, max = 1600) => new Promise(r => { const im = new Image(); im.onload = () => { const k = Math.min(1, max / Math.max(im.width, im.height)); const c = document.createElement('canvas'); c.width = im.width * k; c.height = im.height * k; c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); r(c.toDataURL('image/png')); }; im.src = src; });
 
-function setTool(t) { if (editing) stopEdit(); tool = t; $$('#toolbar button').forEach(b => b.classList.toggle('on', b.dataset.t === t)); $$('.layer').forEach(l => l.classList.toggle('drawing', ['draw', 'whiteout', 'highlight', 'text'].includes(t))); }
+function setTool(t) { if (t === 'edittext') return openEditText(); if (editing) stopEdit(); tool = t; $$('#toolbar button').forEach(b => b.classList.toggle('on', b.dataset.t === t)); $$('.layer').forEach(l => l.classList.toggle('drawing', ['draw', 'whiteout', 'highlight', 'text'].includes(t))); }
 
 // ---------- props ----------
 $('#pSize').onchange = e => { props.size = +e.target.value; applyToSel({ size: props.size }); };
@@ -338,6 +338,44 @@ $('#addPdfInput').onchange = async e => { const fs = [...e.target.files]; e.targ
 $('#blankBtn').onclick = () => { snapshot(); pages.push({ key: uid(), doc: null, idx: 0, w0: 595.28, h0: 841.89, ox: 0, oy: 0, nat: 0, urot: 0, objs: [] }); renderThumbs(); renderAll(); };
 $('#splitBtn').onclick = async () => { const list = pages.filter(p => picked.has(p.key)); if (!list.length) return toast('Tap pages to select them first');
   busy(true, 'Extracting…'); try { await deliver(await buildPdf(list), docName.replace(/\.pdf$/i, '') + ' (pages).pdf'); } catch (e) { console.error(e); toast('Extract failed'); } busy(false); };
+
+
+// ---------- edit existing text (pdfedit: pdf.js 6 + pdf-lib, loaded on demand) ----------
+let ptEditor = null, ptMod = null;
+const pristine = () => docs.length === 1 && !pages.some(p => p.objs.length || p.urot || p.doc !== 0) && pages.length === (docs[0].js?.numPages || 0) && pages.every((p, k) => p.idx === k);
+async function openEditText() {
+  if (editing) stopEdit(); if (!pages.length) return;
+  busy(true, 'Getting text ready…');
+  try {
+    const bytes = pristine() ? docs[0].bytes.slice() : new Uint8Array(await buildPdf(pages));
+    ptMod ||= await import('./vendor/pdfedit.min.mjs');
+    $('#editor').classList.add('hidden'); $('#ptEd').classList.remove('hidden');
+    const host = $('#ptHost'); host.innerHTML = '';
+    let warned = false;
+    ptEditor = ptMod.createPdfEditor(host, bytes, {
+      workerSrc: new URL('./vendor/pdfedit.worker.min.mjs', location.href).href,
+      onError: m => { toast("This PDF's text can't be edited here: " + m, 5000); closeEditText(false); },
+      onWarning: m => { if (!warned) { warned = true; toast(m, 5000); } },
+    });
+  } catch (e) { console.error(e); toast("Couldn't start text editing. Use Whiteout + Add text instead.", 4500); $('#ptEd').classList.add('hidden'); $('#editor').classList.remove('hidden'); }
+  busy(false);
+}
+async function closeEditText(keep) {
+  const ed = ptEditor; ptEditor = null; if (!ed) { $('#ptEd').classList.add('hidden'); $('#editor').classList.remove('hidden'); return; }
+  if (keep && ed.isDirty()) {
+    busy(true, 'Saving text…');
+    try { const out = await ed.getBytes(); ed.destroy(); $('#ptHost').innerHTML = ''; $('#ptEd').classList.add('hidden');
+      const name = docName, id = recentId || uid(); await openBuffers([{ name, bytes: out }], id); recentId = id; await touchRecent(id, name, out); dirty = false; toast('Text updated'); }
+    catch (e) { console.error(e); toast("Couldn't apply those edits.", 4000); ptEditor = ed; busy(false); return; }
+    busy(false); return;
+  }
+  if (!keep && ed.isDirty() && !confirm('Discard your text edits?')) { ptEditor = ed; return; }
+  ed.destroy(); $('#ptHost').innerHTML = ''; $('#ptEd').classList.add('hidden'); $('#editor').classList.remove('hidden');
+}
+$('#ptDone').onclick = () => closeEditText(true);
+$('#ptCancel').onclick = () => closeEditText(false);
+$('#ptUndo').onclick = () => ptEditor?.canUndo() && ptEditor.undo();
+$('#ptRedo').onclick = () => ptEditor?.canRedo() && ptEditor.redo();
 
 // ---------- export ----------
 async function buildPdf(list) {
