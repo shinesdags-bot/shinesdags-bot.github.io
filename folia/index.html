@@ -22,6 +22,7 @@
   <header class="home-top">
     <img src="icon-192.png" alt="" class="logo" />
     <div><h1>Folia</h1><p class="sub">Every office file, one editor.</p></div>
+    <button class="acct off" id="acctChip">Sync off</button>
   </header>
 
   <label class="drop" id="drop">
@@ -104,6 +105,23 @@
     <div class="sm hidden" id="smSaved"><div id="savedSigs" class="saved-sigs"></div></div>
     <label class="chk"><input type="checkbox" id="sigKeep" checked /> Save for next time</label>
     <div class="sheet-f"><button class="btn primary" id="sigUse">Place signature</button></div>
+  </div>
+</div>
+
+<!-- ACCOUNT -->
+<div class="sheet hidden" id="acctSheet">
+  <div class="sheet-card">
+    <div class="sheet-h"><b>Sync between devices</b><button class="ib" data-close>✕</button></div>
+    <div id="acctIn">
+      <p class="note">Sign in with your Neska account and your files show up on your iPhone and your PC.</p>
+      <input id="aEmail" type="email" autocomplete="email" placeholder="Email" class="fld" />
+      <div class="pw"><input id="aPass" type="password" autocomplete="current-password" placeholder="Password" class="fld" /><button class="link" id="aShow">Show</button></div>
+      <div class="sheet-f"><button class="btn primary" id="aIn">Sign in</button><button class="btn" id="aNew">Create account</button></div>
+    </div>
+    <div id="acctOut" class="hidden">
+      <p class="note"><b id="acctEmail"></b><br /><span id="acctState"></span></p>
+      <div class="sheet-f"><button class="btn primary" id="aSync">Sync now</button><button class="btn" id="aOut">Sign out</button></div>
+    </div>
   </div>
 </div>
 

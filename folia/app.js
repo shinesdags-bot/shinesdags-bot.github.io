@@ -1,6 +1,7 @@
 // Folia — PDF editor (phase 1+2). pdf.js renders, pdf-lib writes.
 import * as pdfjsLib from './vendor/pdf.min.mjs';
 pdfjsLib.GlobalWorkerOptions.workerSrc = './vendor/pdf.worker.min.mjs';
+import { Sync } from './sync.js';
 const { PDFDocument, rgb, degrees, StandardFonts } = window.PDFLib;
 
 const $ = s => document.querySelector(s);
@@ -36,18 +37,25 @@ const dbDel = async id => (await store('readwrite')).delete(id);
 const dbGet = async id => new Promise(async r => { const q = (await store('readonly')).get(id); q.onsuccess = () => r(q.result); });
 
 async function renderRecent() {
-  const list = (await dbAll()).sort((a, b) => b.t - a.t).slice(0, 15);
+  const me = Sync.user?.id;
+  const list = (await dbAll()).filter(f => !f.uid || f.uid === me).sort((a, b) => b.t - a.t).slice(0, 30);
   const box = $('#recent');
-  if (!list.length) { box.innerHTML = '<p class="empty">Files you open show up here, saved on this device.</p>'; return; }
+  if (!list.length) { box.innerHTML = `<p class="empty">${me ? 'No files yet. Open one and it shows up on all your devices.' : 'Files you open show up here, saved on this device.'}</p>`; return; }
   box.innerHTML = '';
   for (const f of list) {
     const b = document.createElement('div'); b.className = 'rc';
-    b.innerHTML = `<span class="tag pdf">PDF</span><b></b><small>${new Date(f.t).toLocaleDateString()}</small><button class="x" title="Remove">✕</button>`;
+    const st = !me ? '' : f.synced && f.t <= f.synced ? '<span class="cl" title="On all your devices">☁︎</span>' : '<span class="cl wait" title="Waiting to sync">⟳</span>';
+    b.innerHTML = `<span class="tag pdf">PDF</span><b></b>${st}<small>${new Date(f.t).toLocaleDateString()}</small><button class="x" title="Remove">✕</button>`;
     b.querySelector('b').textContent = f.name;
-    b.onclick = async e => { if (e.target.classList.contains('x')) { e.stopPropagation(); await dbDel(f.id); renderRecent(); return; } const r = await dbGet(f.id); openBuffers([{ name: r.name, bytes: r.bytes }], r.id); };
+    b.onclick = async e => {
+      if (e.target.classList.contains('x')) { e.stopPropagation();
+        if (me && f.synced && !confirm(`Remove "${f.name}" from all your devices?`)) return;
+        await Sync.removeEverywhere(f); await dbDel(f.id); renderRecent(); return; }
+      const r = await dbGet(f.id); openBuffers([{ name: r.name, bytes: r.bytes }], r.id); };
     box.appendChild(b);
   }
 }
+async function touchRecent(id, name, bytes) { const old = await dbGet(id); await dbPut({ ...(old || {}), id, name, bytes, t: Date.now(), uid: Sync.user?.id || old?.uid }); renderRecent(); Sync.syncNow(); }
 
 // ---------- open ----------
 async function loadDoc(bytes) {
@@ -66,7 +74,7 @@ async function openBuffers(files, rid = null) {
     docs = []; pages = []; imgs = {}; undoStack = []; sel = null; canvasCache.clear(); dirty = false;
     for (const f of files) pages.push(...await loadDoc(f.bytes));
     docName = files.length > 1 ? 'Merged.pdf' : files[0].name;
-    if (files.length === 1) { recentId = rid || uid(); dbPut({ id: recentId, name: docName, bytes: files[0].bytes, t: Date.now() }).then(renderRecent); } else recentId = null;
+    if (files.length === 1) { recentId = rid || uid(); if (!rid) touchRecent(recentId, docName, files[0].bytes); } else recentId = null;
     $('#docName').textContent = docName;
     $('#home').classList.add('hidden'); $('#editor').classList.remove('hidden');
     setTool('select'); renderAll();
@@ -356,7 +364,7 @@ async function deliver(bytes, name) {
 $('#saveBtn').onclick = async () => {
   if (editing) stopEdit(); busy(true, 'Saving…');
   try { const bytes = await buildPdf(pages); busy(false); const ok = await deliver(bytes, docName);
-    if (ok) { dirty = false; if (recentId) dbPut({ id: recentId, name: docName, bytes, t: Date.now() }); } }
+    if (ok) { dirty = false; if (recentId) touchRecent(recentId, docName, bytes); } }
   catch (e) { console.error(e); busy(false); toast("Couldn't save: " + (e.message || e)); }
 };
 
@@ -372,5 +380,33 @@ document.addEventListener('drop', e => e.dataTransfer?.files?.length && openFile
 if ('launchQueue' in window) launchQueue.setConsumer(async p => { if (p.files?.length) openFiles(await Promise.all(p.files.map(h => h.getFile()))); });
 window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => {});
+// ---------- account + sync ----------
+let syncState = 'off', syncMsg = '';
+function paintAcct() {
+  const u = Sync.user, chip = $('#acctChip');
+  chip.className = 'acct ' + (u ? syncState : 'off');
+  chip.textContent = !u ? 'Sync off' : syncState === 'syncing' ? 'Syncing…' : syncState === 'error' ? 'Sync issue' : 'Synced';
+  $('#acctIn').classList.toggle('hidden', !!u); $('#acctOut').classList.toggle('hidden', !u);
+  if (u) { $('#acctEmail').textContent = u.email || ''; $('#acctState').textContent = syncState === 'error' ? "Couldn't sync: " + syncMsg : syncState === 'syncing' ? 'Syncing now…' : 'Your files are on all your devices.'; }
+}
+Sync.init({ all: dbAll, put: dbPut, del: dbDel, get: dbGet,
+  status: (s, m) => { syncState = s; syncMsg = m || ''; paintAcct(); if (s === 'error' && m && $('#acctSheet').classList.contains('hidden')) toast("Couldn't sync: " + m); },
+  changed: () => { if (!$('#home').classList.contains('hidden')) renderRecent(); } });
+$('#acctChip').onclick = () => { paintAcct(); $('#acctSheet').classList.remove('hidden'); };
+async function doAuth(create) {
+  const em = $('#aEmail').value.trim(), pw = $('#aPass').value;
+  if (!em || !pw) return toast('Enter your email and password');
+  if (create && pw.length < 6) return toast('Use at least 6 characters');
+  busy(true, create ? 'Creating account…' : 'Signing in…');
+  try { await Sync.signIn(em, pw, create); $('#aPass').value = ''; renderRecent(); toast('Signed in. Syncing your files.'); }
+  catch (e) { toast(e.message); }
+  busy(false); paintAcct();
+}
+$('#aIn').onclick = () => doAuth(false);
+$('#aNew').onclick = () => doAuth(true);
+$('#aPass').addEventListener('keydown', e => e.key === 'Enter' && doAuth(false));
+$('#aShow').onclick = () => { const p = $('#aPass'); p.type = p.type === 'password' ? 'text' : 'password'; $('#aShow').textContent = p.type === 'password' ? 'Show' : 'Hide'; };
+$('#aSync').onclick = () => Sync.syncNow();
+$('#aOut').onclick = () => { Sync.signOut(); renderRecent(); toast('Signed out. Files stay on this device.'); };
 renderRecent();
 window.__folia = { get pages() { return pages; }, buildPdf, openBuffers, setTool };
