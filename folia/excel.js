@@ -403,6 +403,7 @@ export function initExcel(c) {
   wrap.addEventListener('scroll', () => { if (wrap.scrollTop + wrap.clientHeight > wrap.scrollHeight - 300 && rowsShown < 100000) growRows(); });
   const inp = $('#xIn');
   inp.addEventListener('keydown', e => {
+    if (['Enter', 'Tab', 'Escape'].includes(e.key)) e.stopPropagation();
     if (e.key === 'Enter') { e.preventDefault(); commit(e.shiftKey ? null : 'down'); }
     else if (e.key === 'Tab') { e.preventDefault(); commit(e.shiftKey ? 'left' : 'right'); }
     else if (e.key === 'Escape') { e.preventDefault(); cancel(); }
@@ -411,7 +412,7 @@ export function initExcel(c) {
   inp.addEventListener('blur', () => setTimeout(() => { if (editing?.src === 'cell' && document.activeElement !== inp) commit(); }, 0));
   const fx = $('#xFx');
   fx.addEventListener('focus', () => { if (editing?.src !== 'fx') { if (editing) commit(); editing = { r: sel.r, c: sel.c, src: 'fx' }; } });
-  fx.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); commit('down'); fx.blur(); } else if (e.key === 'Escape') { cancel(); fx.blur(); } });
+  fx.addEventListener('keydown', e => { if (['Enter', 'Escape'].includes(e.key)) e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); commit('down'); fx.blur(); } else if (e.key === 'Escape') { cancel(); fx.blur(); } });
   fx.addEventListener('blur', () => { if (editing?.src === 'fx') commit(); });
   $('#xRef').addEventListener('change', e => { const v = e.target.value.trim().toUpperCase(), [p, q] = v.split(':').map(parseA1); if (p) { moveTo(p.r, p.c); if (q) moveTo(q.r, q.c, true); } else showSel(); });
   document.addEventListener('keydown', e => {
