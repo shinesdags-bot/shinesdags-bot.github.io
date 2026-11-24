@@ -7006,7 +7006,7 @@
   var P = window.NeskaPlayer, Y = window.NeskaYT;
   if (!P || !Y || !Y.loadApi || !$("svHost")) return;
   var app = $("app"), API = "https://www.googleapis.com/youtube/v3/";
-  var K_KEY = "neska.ytkey", K_CACHE = "neska.ytcache", K_MODE = "neska.ytmode", K_META = "neska.ytmeta", K_IOS = "neska.ytiosnote";
+  var K_KEY = "neska.ytkey", K_CACHE = "neska.ytcache2", K_MODE = "neska.ytmode", K_META = "neska.ytmeta", K_IOS = "neska.ytiosnote";
   var isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function lsSet(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }
@@ -7037,6 +7037,16 @@
     }
     title = title.replace(/^["“]|["”]$/g, "").trim();
     return { title: title || decode(rawTitle) || "YouTube song", artist: artist };
+  }
+  /* Music-first ranking: official audio (the tracks YouTube Music plays) first, then official videos; covers, mixes, reactions last */
+  var ALT = /\b(cover|karaoke|instrumental|reaction|reacts?|slowed|sped ?up|nightcore|8d|bass boosted|tutorial|lesson|dance video|choreography|live|remix|mashup|mix|playlist|full album|lyrics?|lyric video|1 hour|loop)\b/i;
+  function musicScore(t, ch, q) {
+    var sc = 0, qq = String(q || "").toLowerCase(), tl = String(t || "").toLowerCase();
+    if (/\s-\s*topic$/i.test(ch || "")) sc += 6;
+    if (/official\s*(audio|visuali[sz]er)/i.test(tl) || /[\[(]\s*audio\s*[\])]/i.test(tl)) sc += 4;
+    if (/vevo$/i.test(ch || "") || /official\s*(music\s*)?video/i.test(tl)) sc += 2;
+    var m = ALT.exec(tl); if (m && qq.indexOf(m[1].toLowerCase()) < 0) sc -= 5;
+    return sc;
   }
   function isoDur(s) {
     var m = /^P(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/.exec(String(s || ""));
@@ -7180,15 +7190,16 @@
     if (hit) { msg(""); show(hit); return; }
     if (!force && results.length) {} // keep the old rows until new ones arrive
     msg("Searching YouTube…");
-    fetch(API + "search?part=snippet&type=video&videoCategoryId=10&maxResults=15&q=" + encodeURIComponent(q) + "&key=" + encodeURIComponent(key)).then(function (r) {
+    fetch(API + "search?part=snippet&type=video&videoCategoryId=10&videoEmbeddable=true&videoSyndicated=true&maxResults=25&q=" + encodeURIComponent(q) + "&key=" + encodeURIComponent(key)).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (j) {
         if (!r.ok) { var e = new Error("search " + r.status); e.status = r.status; e.reason = reason(j); throw e; }
         return j;
       });
     }).then(function (j) {
       var list = (j.items || []).filter(function (x) { return x && x.id && x.id.videoId; }).map(function (x) {
-        var c = clean(x.snippet && x.snippet.title, x.snippet && x.snippet.channelTitle);
-        return { id: x.id.videoId, title: c.title, artist: c.artist, dur: 0 };
+        var rt = x.snippet && x.snippet.title, rc = x.snippet && x.snippet.channelTitle;
+        var c = clean(rt, rc);
+        return { id: x.id.videoId, title: c.title, artist: c.artist, dur: 0, sc: musicScore(decode(rt), decode(rc), q) };
       });
       if (!list.length) return list;
       return fetch(API + "videos?part=contentDetails,statistics&id=" + list.map(function (x) { return x.id; }).join(",") + "&key=" + encodeURIComponent(key)).then(function (r) {
@@ -7197,9 +7208,13 @@
         var d = {};
         (v.items || []).forEach(function (x) { d[x.id] = isoDur(x.contentDetails && x.contentDetails.duration); });
         list.forEach(function (x) { x.dur = d[x.id] || 0; });
-        return list.filter(function (x) { return d[x.id] !== 0 || !(x.id in d); }); // skip live streams (no length)
+        list = list.filter(function (x) { return d[x.id] !== 0 || !(x.id in d); }); // skip live streams (no length)
+        list.forEach(function (x, i) { if (x.dur > 900) x.sc -= 4; else if (x.dur && x.dur < 60) x.sc -= 3; x.o = i; });
+        return list;
       }, function () { return list; });
     }).then(function (list) {
+      list = list.map(function (x, i) { if (x.o == null) x.o = i; return x; }).sort(function (a, b) { return (b.sc || 0) - (a.sc || 0) || a.o - b.o; })
+        .slice(0, 15).map(function (x) { return { id: x.id, title: x.title, artist: x.artist, dur: x.dur }; });
       cachePut(q, list);
       if (my !== seq) return;
       msg(""); show(list);
