@@ -26,23 +26,25 @@
   </header>
 
   <label class="drop" id="drop">
-    <input type="file" id="openInput" accept="application/pdf,.pdf" class="vh" aria-label="Choose a PDF" />
+    <input type="file" id="openInput" accept="application/pdf,.pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="vh" aria-label="Choose a file" />
     <div class="drop-ic">＋</div>
-    <div class="drop-t">Open a PDF</div>
-    <div class="drop-s">Tap to pick from Files, or drop one here</div>
+    <div class="drop-t">Open a file</div>
+    <div class="drop-s">PDF or Word. Tap to pick from Files, or drop one here</div>
   </label>
 
   <h2>Tools</h2>
   <div class="tiles">
     <button class="tile" data-open="pdf"><span class="tag pdf">PDF</span><b>Edit &amp; sign</b><i>Text, whiteout, highlight, draw, sign, pages</i></button>
     <button class="tile" data-open="merge"><span class="tag pdf">PDF</span><b>Merge PDFs</b><i>Combine several files into one</i></button>
-    <button class="tile soon"><span class="tag doc">DOCX</span><b>Word</b><i>Coming next</i></button>
+    <button class="tile" data-word="new"><span class="tag doc">DOCX</span><b>New Word doc</b><i>Write and format a document</i></button>
+    <button class="tile" data-word="open"><span class="tag doc">DOCX</span><b>Open Word file</b><i>Edit .docx, save as Word or PDF</i></button>
     <button class="tile soon"><span class="tag xls">XLSX</span><b>Excel</b><i>Coming soon</i></button>
     <button class="tile soon"><span class="tag ppt">PPTX</span><b>PowerPoint</b><i>Coming soon</i></button>
   </div>
 
   <h2>Recent</h2>
   <div id="recent" class="recent"><p class="empty">Files you open show up here, saved on this device.</p></div>
+  <input type="file" id="wordInput" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="vh" aria-label="Choose a Word file" />
   <input type="file" id="mergeInput" accept="application/pdf,.pdf" multiple class="vh" aria-label="Choose PDFs to merge" />
 </section>
 
@@ -83,12 +85,51 @@
 </section>
 
 <!-- PAGES PANEL -->
+<!-- WORD EDITOR -->
+<section id="wordEd" class="screen hidden">
+  <div class="wtop">
+  <header class="ed-top">
+    <button class="ib" id="wBack" title="Back">‹</button>
+    <div class="ed-name"><input id="wName" class="wname" value="Untitled" aria-label="Document name" /><small id="wState">Saved</small></div>
+    <button class="ib" data-c="undo" title="Undo">↶</button>
+    <button class="ib" data-c="redo" title="Redo">↷</button>
+    <button class="save" id="wSave">Save</button>
+  </header>
+  <div class="wbar" id="wBar">
+    <select id="wStyle" aria-label="Style"><option value="p">Normal</option><option value="h1">Heading 1</option><option value="h2">Heading 2</option><option value="h3">Heading 3</option></select>
+    <select id="wSize" aria-label="Font size"><option value="">Size</option><option>9</option><option>10</option><option>11</option><option>12</option><option>14</option><option>16</option><option>18</option><option>24</option><option>32</option></select>
+    <span class="sep"></span>
+    <button data-c="bold" title="Bold"><b>B</b></button><button data-c="italic" title="Italic"><i>I</i></button><button data-c="underline" title="Underline"><u>U</u></button><button data-c="strikeThrough" title="Strikethrough"><s>S</s></button>
+    <span class="swatches" id="wColor" title="Text colour"><button data-c="#111111" style="background:#111"></button><button data-c="#1f4fd1" style="background:#1f4fd1"></button><button data-c="#c62828" style="background:#c62828"></button><button data-c="#1b7a3a" style="background:#1b7a3a"></button></span>
+    <span class="swatches mark" id="wMark" title="Highlight"><button data-c="#fff176" style="background:#fff176"></button><button data-c="#b9f6ca" style="background:#b9f6ca"></button><button data-c="transparent" class="none">⌀</button></span>
+    <span class="sep"></span>
+    <button data-c="justifyLeft" title="Align left">⇤</button><button data-c="justifyCenter" title="Center">≡</button><button data-c="justifyRight" title="Align right">⇥</button><button data-c="justifyFull" title="Justify">☰</button>
+    <span class="sep"></span>
+    <button data-c="insertUnorderedList" title="Bullets">•≡</button><button data-c="insertOrderedList" title="Numbering">1≡</button><button data-c="outdent" title="Decrease indent">⇠</button><button data-c="indent" title="Increase indent">⇢</button>
+    <span class="sep"></span>
+    <button id="wLink" title="Link">🔗</button><button id="wImgBtn" title="Picture">▣</button><button id="wTable" title="Table">▦</button><button data-c="removeFormat" title="Clear formatting">Tx</button>
+  </div>
+  <div class="wtbl hidden" id="wTbl"><span>Table</span><button data-t="row">+ Row</button><button data-t="col">+ Column</button><button data-t="delrow">− Row</button><button data-t="delcol">− Column</button></div>
+  </div>
+  <main class="wview"><article id="wPage" class="wpage" contenteditable="true" spellcheck="true"></article></main>
+  <input type="file" id="wImg" accept="image/*" class="vh" aria-label="Choose a picture" />
+</section>
+
+<div class="sheet hidden" id="wSaveSheet">
+  <div class="sheet-card">
+    <div class="sheet-h"><b>Save a copy</b><button class="ib" data-close>✕</button></div>
+    <p class="note">Your changes save automatically in Folia and sync to your devices. Get a file to send or keep:</p>
+    <div class="sheet-f"><button class="btn primary" data-x="docx">Word (.docx)</button><button class="btn" data-x="pdf">PDF</button></div>
+  </div>
+</div>
+
+
 <div class="sheet hidden" id="pagesSheet">
   <div class="sheet-card wide">
     <div class="sheet-h"><b>Pages</b><button class="ib" data-close>✕</button></div>
     <div class="thumbs" id="thumbs"></div>
     <div class="sheet-f">
-      <label class="btn"><input type="file" id="addPdfInput" accept="application/pdf,.pdf" class="vh" aria-label="Choose a PDF" />Add pages from PDF</label>
+      <label class="btn"><input type="file" id="addPdfInput" accept="application/pdf,.pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="vh" aria-label="Choose a file" />Add pages from PDF</label>
       <button class="btn" id="blankBtn">Add blank page</button>
       <button class="btn" id="splitBtn">Extract selected</button>
     </div>

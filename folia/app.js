@@ -2,6 +2,7 @@
 import * as pdfjsLib from './vendor/pdf.min.mjs';
 pdfjsLib.GlobalWorkerOptions.workerSrc = './vendor/pdf.worker.min.mjs';
 import { Sync } from './sync.js';
+import { initWord, openWord, newWord, wordLibs } from './word.js';
 const { PDFDocument, rgb, degrees, StandardFonts } = window.PDFLib;
 
 const $ = s => document.querySelector(s);
@@ -45,17 +46,18 @@ async function renderRecent() {
   for (const f of list) {
     const b = document.createElement('div'); b.className = 'rc';
     const st = !me ? '' : f.synced && f.t <= f.synced ? '<span class="cl" title="On all your devices">☁︎</span>' : '<span class="cl wait" title="Waiting to sync">⟳</span>';
-    b.innerHTML = `<span class="tag pdf">PDF</span><b></b>${st}<small>${new Date(f.t).toLocaleDateString()}</small><button class="x" title="Remove">✕</button>`;
+    b.innerHTML = `${isDocx(f) ? '<span class="tag doc">DOCX</span>' : '<span class="tag pdf">PDF</span>'}<b></b>${st}<small>${new Date(f.t).toLocaleDateString()}</small><button class="x" title="Remove">✕</button>`;
     b.querySelector('b').textContent = f.name;
     b.onclick = async e => {
       if (e.target.classList.contains('x')) { e.stopPropagation();
         if (me && f.synced && !confirm(`Remove "${f.name}" from all your devices?`)) return;
         await Sync.removeEverywhere(f); await dbDel(f.id); renderRecent(); return; }
-      const r = await dbGet(f.id); openBuffers([{ name: r.name, bytes: r.bytes }], r.id); };
+      const r = await dbGet(f.id); if (isDocx(r)) openWord({ name: r.name, bytes: r.bytes }, r.id); else openBuffers([{ name: r.name, bytes: r.bytes }], r.id); };
     box.appendChild(b);
   }
 }
-async function touchRecent(id, name, bytes) { const old = await dbGet(id); await dbPut({ ...(old || {}), id, name, bytes, t: Date.now(), uid: Sync.user?.id || old?.uid }); renderRecent(); Sync.syncNow(); }
+const isDocx = r => r.kind === 'docx' || /\.docx$/i.test(r.name || '');
+async function touchRecent(id, name, bytes, kind = 'pdf') { const old = await dbGet(id); await dbPut({ ...(old || {}), id, name, bytes, kind, t: Date.now(), uid: Sync.user?.id || old?.uid }); renderRecent(); Sync.syncNow(); }
 
 // ---------- open ----------
 async function loadDoc(bytes) {
@@ -81,7 +83,14 @@ async function openBuffers(files, rid = null) {
   } catch (e) { console.error(e); toast(e?.name === 'PasswordException' ? 'This PDF is password-protected.' : "Couldn't open that file."); }
   busy(false);
 }
-const openFiles = async list => { const fs = [...list].filter(f => /pdf$/i.test(f.type) || /\.pdf$/i.test(f.name)); if (!fs.length) return toast('Pick a PDF for now. Word, Excel and PowerPoint are coming.'); openBuffers(await Promise.all(fs.map(async f => ({ name: f.name, bytes: await readFile(f) })))); };
+const openFiles = async list => {
+  const all = [...list], dx = all.filter(f => /\.docx$/i.test(f.name) || /wordprocessingml/.test(f.type));
+  if (dx.length) return openWord({ name: dx[0].name, bytes: await readFile(dx[0]) });
+  if (all.some(f => /\.doc$/i.test(f.name))) return toast('Old .doc files aren\u2019t supported yet. Save it as .docx first.');
+  const fs = all.filter(f => /pdf$/i.test(f.type) || /\.pdf$/i.test(f.name));
+  if (!fs.length) return toast('Pick a PDF or Word file. Excel and PowerPoint are coming.');
+  openBuffers(await Promise.all(fs.map(async f => ({ name: f.name, bytes: await readFile(f) }))));
+};
 
 // ---------- render ----------
 let io;
@@ -354,11 +363,12 @@ async function buildPdf(list) {
   return out.save();
 }
 const clean = s => [...s].map(c => { const n = c.codePointAt(0); if (c === '\n' || (n >= 32 && n < 127) || (n >= 160 && n <= 255)) return c; return ({ '‘': "'", '’': "'", '“': '"', '”': '"', '–': '-', '—': '-', '…': '...', '•': '-', '€': 'EUR', '₦': 'N' })[c] || '?'; }).join('');
-async function deliver(bytes, name) {
-  const file = new File([bytes], name, { type: 'application/pdf' });
+async function deliver(bytes, name, mime = 'application/pdf') {
+  const file = new File([bytes], name, { type: mime });
+  const ext = '.' + name.split('.').pop().toLowerCase();
   const mobile = /iPhone|iPad|Android/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent));
   if (mobile && navigator.canShare?.({ files: [file] })) { try { await navigator.share({ files: [file], title: name }); return true; } catch (e) { if (e.name === 'AbortError') return false; } }
-  if (window.showSaveFilePicker) { try { const h = await showSaveFilePicker({ suggestedName: name, types: [{ description: 'PDF', accept: { 'application/pdf': ['.pdf'] } }] }); const w = await h.createWritable(); await w.write(file); await w.close(); toast('Saved'); return true; } catch (e) { if (e.name === 'AbortError') return false; } }
+  if (window.showSaveFilePicker) { try { const h = await showSaveFilePicker({ suggestedName: name, types: [{ description: ext === '.pdf' ? 'PDF' : 'Word document', accept: { [mime]: [ext] } }] }); const w = await h.createWritable(); await w.write(file); await w.close(); toast('Saved'); return true; } catch (e) { if (e.name === 'AbortError') return false; } }
   const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); toast('Downloaded'); return true;
 }
 $('#saveBtn').onclick = async () => {
@@ -371,6 +381,8 @@ $('#saveBtn').onclick = async () => {
 // ---------- home wiring ----------
 $('#openInput').onchange = e => { openFiles(e.target.files); e.target.value = ''; };
 $('#mergeInput').onchange = e => { if (e.target.files.length < 2) toast('Pick two or more PDFs'); else openFiles(e.target.files); e.target.value = ''; };
+$('#wordInput').onchange = e => { openFiles(e.target.files); e.target.value = ''; };
+$$('.tile[data-word]').forEach(t => t.onclick = () => t.dataset.word === 'new' ? newWord() : $('#wordInput').click());
 $$('.tile[data-open]').forEach(t => t.onclick = () => (t.dataset.open === 'merge' ? $('#mergeInput') : $('#openInput')).click());
 $$('.tile.soon').forEach(t => t.onclick = () => toast('That editor is on the way in the next update.'));
 const drop = $('#drop');
@@ -408,5 +420,7 @@ $('#aPass').addEventListener('keydown', e => e.key === 'Enter' && doAuth(false))
 $('#aShow').onclick = () => { const p = $('#aPass'); p.type = p.type === 'password' ? 'text' : 'password'; $('#aShow').textContent = p.type === 'password' ? 'Show' : 'Hide'; };
 $('#aSync').onclick = () => Sync.syncNow();
 $('#aOut').onclick = () => { Sync.signOut(); renderRecent(); toast('Signed out. Files stay on this device.'); };
+initWord({ toast, busy, deliver, toPNG, touchRecent, home: renderRecent });
+if ('requestIdleCallback' in window) requestIdleCallback(() => wordLibs().catch(() => {}), { timeout: 8000 });
 renderRecent();
 window.__folia = { get pages() { return pages; }, buildPdf, openBuffers, setTool };

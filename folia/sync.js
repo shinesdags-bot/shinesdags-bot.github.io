@@ -35,7 +35,8 @@ async function api(path, { method = 'GET', headers = {}, body, raw } = {}, retri
   const j = await readJSON(r); if (!r.ok) { const e = new Error(errText(j, 'Request failed (' + r.status + ').')); e.status = r.status; throw e; } return j;
 }
 const enc = p => p.split('/').map(encodeURIComponent).join('/');
-const safe = n => (n || 'Document.pdf').replace(/[^A-Za-z0-9 ._()-]/g, '_').slice(0, 120);
+const safe = n => (n || 'Document.pdf').replace(/[\u20a6]/g, 'N').replace(/[\u2013\u2014]/g, '-').replace(/[^A-Za-z0-9 ._()-]/g, '_').slice(0, 120);
+const mimeOf = r => /\.docx$/i.test(r.name || '') || r.kind === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'application/pdf';
 const dir = () => S.user.id + '/folia/';
 const keyOf = rec => dir() + rec.id + '__' + safe(rec.name);
 
@@ -45,7 +46,7 @@ async function listCloud() {
 }
 async function push(rec, cloudKeys) {
   const k = keyOf(rec);
-  const res = await api('/storage/v1/object/' + BUCKET + '/' + enc(k), { method: 'POST', headers: { 'Content-Type': 'application/pdf', 'x-upsert': 'true', 'cache-control': 'no-cache' }, body: new Blob([rec.bytes], { type: 'application/pdf' }), raw: true });
+  const res = await api('/storage/v1/object/' + BUCKET + '/' + enc(k), { method: 'POST', headers: { 'Content-Type': mimeOf(rec), 'x-upsert': 'true', 'cache-control': 'no-cache' }, body: new Blob([rec.bytes], { type: mimeOf(rec) }), raw: true });
   for (const o of cloudKeys || []) if (o.id === rec.id && o.key !== k) api('/storage/v1/object/' + BUCKET + '/' + enc(o.key), { method: 'DELETE' }).catch(() => {});
   return res?.version || null;
 }
@@ -79,7 +80,7 @@ async function syncNow() {
     }
     for (const o of cloud) if (!seen.has(o.id)) {
       const bytes = await pull(o); const now = Date.now();
-      await hooks.put({ id: o.id, name: o.name, bytes, t: now, synced: now, cv: o.ver, uid: S.user.id });
+      await hooks.put({ id: o.id, name: o.name, kind: /\.docx$/i.test(o.name) ? 'docx' : 'pdf', bytes, t: now, synced: now, cv: o.ver, uid: S.user.id });
     }
     hooks.changed?.();
   })().then(() => hooks.status?.('ok'), e => { console.error(e); hooks.status?.('error', e.message); }).finally(() => { busyP = null; });
