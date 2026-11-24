@@ -130,3 +130,39 @@ h2{font-size:13px;text-transform:uppercase;letter-spacing:1.2px;color:var(--mute
   body.printing .wview{padding:0}body.printing .wpage{box-shadow:none;padding:0;max-width:none;min-height:0}
   @page{margin:20mm}
 }
+
+/* excel */
+#xlEd{display:flex;flex-direction:column;height:100dvh;background:#fff}
+.wbar>span>button{min-width:34px;height:34px;border-radius:8px;font-size:15px}
+.wbar button.on,.wbar span>button.on{background:#e7f0ee;color:var(--green)}
+.wbar>button.wide{font-size:13px;padding:0 8px}
+.xfx{display:flex;align-items:center;gap:6px;padding:5px 8px;background:#fff;border-bottom:1px solid var(--line)}
+.xfx span{color:var(--mute);font-style:italic;font-size:13px}
+#xRef{width:72px;font:inherit;font-size:14px;padding:6px;border:1px solid var(--line);border-radius:8px;text-align:center}
+#xFx{flex:1;min-width:0;font:inherit;font-size:16px;padding:6px 8px;border:1px solid var(--line);border-radius:8px}
+.xwrap{flex:1;overflow:auto;position:relative;-webkit-overflow-scrolling:touch;background:#fff}
+.xgrid{border-collapse:separate;border-spacing:0;table-layout:fixed;font:13px/1.2 Calibri,Carlito,"Segoe UI",Arial,sans-serif;user-select:none;-webkit-user-select:none}
+.xgrid td{height:24px;padding:2px 4px;border-right:1px solid #e2e2e2;border-bottom:1px solid #e2e2e2;white-space:nowrap;overflow:hidden;text-overflow:clip;cursor:cell;background-clip:padding-box}
+.xgrid td.err{color:#c62828}
+.xgrid th{position:sticky;background:#f3f4f2;color:#555;font-weight:500;font-size:12px;border-right:1px solid #d6d6d6;border-bottom:1px solid #d6d6d6;z-index:2}
+.xgrid thead th{top:0;height:24px}.xgrid tbody th{left:0;text-align:center}.xgrid th.corner{left:0;top:0;z-index:3}
+.xgrid th.hl{background:#dfece8;color:var(--green)}
+.xgrid td.in{box-shadow:inset 0 0 0 9999px rgba(43,125,233,.10)}
+.xgrid td.cur{outline:2px solid #1d6f5f;outline-offset:-2px}
+.xgrid .rz{position:absolute;right:-4px;top:0;bottom:0;width:8px;cursor:col-resize;z-index:4}
+.xin{position:absolute;z-index:5;font:13px Calibri,Carlito,"Segoe UI",Arial,sans-serif;padding:2px 4px;border:2px solid #1d6f5f;outline:none;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+@media(pointer:coarse){.xin{font-size:16px}}
+.xfoot{display:flex;align-items:center;gap:10px;padding:4px 8px calc(var(--safe-b) + 4px);border-top:1px solid var(--line);background:#f7f6f2}
+.xtabs{display:flex;gap:4px;overflow-x:auto;flex:1}
+.xtab{padding:7px 12px;border-radius:8px;font-size:13px;white-space:nowrap;color:var(--mute)}
+.xtab.on{background:#fff;color:var(--green);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.12)}.xtab.add{font-size:17px}
+#xSum{color:var(--mute);white-space:nowrap;font-size:12px}
+.btn.danger{background:#fdecea;color:#b3261e}
+.xprint{display:none}
+@media print{
+  body.printing-x>*:not(#xlEd){display:none!important}
+  body.printing-x #xlEd>*:not(#xPrint){display:none!important}
+  body.printing-x #xlEd{height:auto;display:block}
+  body.printing-x .xprint{display:block}
+  .xprint table{border-collapse:collapse;font:10pt Calibri,Arial,sans-serif}.xprint td{border:1px solid #bbb;padding:3px 6px;white-space:nowrap}
+}

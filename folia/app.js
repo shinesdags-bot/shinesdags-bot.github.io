@@ -3,6 +3,7 @@ import * as pdfjsLib from './vendor/pdf.min.mjs';
 pdfjsLib.GlobalWorkerOptions.workerSrc = './vendor/pdf.worker.min.mjs';
 import { Sync } from './sync.js';
 import { initWord, openWord, newWord, wordLibs } from './word.js';
+import { initExcel, openExcel, newExcel, excelLibs } from './excel.js';
 const { PDFDocument, rgb, degrees, StandardFonts } = window.PDFLib;
 
 const $ = s => document.querySelector(s);
@@ -46,17 +47,18 @@ async function renderRecent() {
   for (const f of list) {
     const b = document.createElement('div'); b.className = 'rc';
     const st = !me ? '' : f.synced && f.t <= f.synced ? '<span class="cl" title="On all your devices">☁︎</span>' : '<span class="cl wait" title="Waiting to sync">⟳</span>';
-    b.innerHTML = `${isDocx(f) ? '<span class="tag doc">DOCX</span>' : '<span class="tag pdf">PDF</span>'}<b></b>${st}<small>${new Date(f.t).toLocaleDateString()}</small><button class="x" title="Remove">✕</button>`;
+    b.innerHTML = `${isDocx(f) ? '<span class="tag doc">DOCX</span>' : isXlsx(f) ? '<span class="tag xls">XLSX</span>' : '<span class="tag pdf">PDF</span>'}<b></b>${st}<small>${new Date(f.t).toLocaleDateString()}</small><button class="x" title="Remove">✕</button>`;
     b.querySelector('b').textContent = f.name;
     b.onclick = async e => {
       if (e.target.classList.contains('x')) { e.stopPropagation();
         if (me && f.synced && !confirm(`Remove "${f.name}" from all your devices?`)) return;
         await Sync.removeEverywhere(f); await dbDel(f.id); renderRecent(); return; }
-      const r = await dbGet(f.id); if (isDocx(r)) openWord({ name: r.name, bytes: r.bytes }, r.id); else openBuffers([{ name: r.name, bytes: r.bytes }], r.id); };
+      const r = await dbGet(f.id); if (isDocx(r)) openWord({ name: r.name, bytes: r.bytes }, r.id); else if (isXlsx(r)) openExcel({ name: r.name, bytes: r.bytes }, r.id); else openBuffers([{ name: r.name, bytes: r.bytes }], r.id); };
     box.appendChild(b);
   }
 }
 const isDocx = r => r.kind === 'docx' || /\.docx$/i.test(r.name || '');
+const isXlsx = r => r.kind === 'xlsx' || /\.xlsx$/i.test(r.name || '');
 async function touchRecent(id, name, bytes, kind = 'pdf') { const old = await dbGet(id); await dbPut({ ...(old || {}), id, name, bytes, kind, t: Date.now(), uid: Sync.user?.id || old?.uid }); renderRecent(); Sync.syncNow(); }
 
 // ---------- open ----------
@@ -86,9 +88,12 @@ async function openBuffers(files, rid = null) {
 const openFiles = async list => {
   const all = [...list], dx = all.filter(f => /\.docx$/i.test(f.name) || /wordprocessingml/.test(f.type));
   if (dx.length) return openWord({ name: dx[0].name, bytes: await readFile(dx[0]) });
+  const xl = all.filter(f => /\.(xlsx|xlsm|csv)$/i.test(f.name) || /spreadsheetml|text\/csv/.test(f.type));
+  if (xl.length) return openExcel({ name: xl[0].name, bytes: await readFile(xl[0]) });
+  if (all.some(f => /\.xls$/i.test(f.name))) return toast('Old .xls files aren\u2019t supported yet. Save it as .xlsx first.');
   if (all.some(f => /\.doc$/i.test(f.name))) return toast('Old .doc files aren\u2019t supported yet. Save it as .docx first.');
   const fs = all.filter(f => /pdf$/i.test(f.type) || /\.pdf$/i.test(f.name));
-  if (!fs.length) return toast('Pick a PDF or Word file. Excel and PowerPoint are coming.');
+  if (!fs.length) return toast('Pick a PDF, Word or Excel file. PowerPoint is coming.');
   openBuffers(await Promise.all(fs.map(async f => ({ name: f.name, bytes: await readFile(f) }))));
 };
 
@@ -368,7 +373,7 @@ async function deliver(bytes, name, mime = 'application/pdf') {
   const ext = '.' + name.split('.').pop().toLowerCase();
   const mobile = /iPhone|iPad|Android/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent));
   if (mobile && navigator.canShare?.({ files: [file] })) { try { await navigator.share({ files: [file], title: name }); return true; } catch (e) { if (e.name === 'AbortError') return false; } }
-  if (window.showSaveFilePicker) { try { const h = await showSaveFilePicker({ suggestedName: name, types: [{ description: ext === '.pdf' ? 'PDF' : 'Word document', accept: { [mime]: [ext] } }] }); const w = await h.createWritable(); await w.write(file); await w.close(); toast('Saved'); return true; } catch (e) { if (e.name === 'AbortError') return false; } }
+  if (window.showSaveFilePicker) { try { const h = await showSaveFilePicker({ suggestedName: name, types: [{ description: ({ '.pdf': 'PDF', '.docx': 'Word document', '.xlsx': 'Excel workbook', '.csv': 'CSV' })[ext] || 'File', accept: { [mime]: [ext] } }] }); const w = await h.createWritable(); await w.write(file); await w.close(); toast('Saved'); return true; } catch (e) { if (e.name === 'AbortError') return false; } }
   const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); toast('Downloaded'); return true;
 }
 $('#saveBtn').onclick = async () => {
@@ -382,6 +387,8 @@ $('#saveBtn').onclick = async () => {
 $('#openInput').onchange = e => { openFiles(e.target.files); e.target.value = ''; };
 $('#mergeInput').onchange = e => { if (e.target.files.length < 2) toast('Pick two or more PDFs'); else openFiles(e.target.files); e.target.value = ''; };
 $('#wordInput').onchange = e => { openFiles(e.target.files); e.target.value = ''; };
+$('#xlInput').onchange = e => { openFiles(e.target.files); e.target.value = ''; };
+$$('.tile[data-xl]').forEach(t => t.onclick = () => t.dataset.xl === 'new' ? newExcel() : $('#xlInput').click());
 $$('.tile[data-word]').forEach(t => t.onclick = () => t.dataset.word === 'new' ? newWord() : $('#wordInput').click());
 $$('.tile[data-open]').forEach(t => t.onclick = () => (t.dataset.open === 'merge' ? $('#mergeInput') : $('#openInput')).click());
 $$('.tile.soon').forEach(t => t.onclick = () => toast('That editor is on the way in the next update.'));
@@ -421,6 +428,7 @@ $('#aShow').onclick = () => { const p = $('#aPass'); p.type = p.type === 'passwo
 $('#aSync').onclick = () => Sync.syncNow();
 $('#aOut').onclick = () => { Sync.signOut(); renderRecent(); toast('Signed out. Files stay on this device.'); };
 initWord({ toast, busy, deliver, toPNG, touchRecent, home: renderRecent });
-if ('requestIdleCallback' in window) requestIdleCallback(() => wordLibs().catch(() => {}), { timeout: 8000 });
+initExcel({ toast, busy, deliver, touchRecent, home: renderRecent });
+if ('requestIdleCallback' in window) requestIdleCallback(() => wordLibs().then(excelLibs).catch(() => {}), { timeout: 8000 });
 renderRecent();
 window.__folia = { get pages() { return pages; }, buildPdf, openBuffers, setTool };

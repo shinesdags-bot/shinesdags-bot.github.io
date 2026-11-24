@@ -26,10 +26,10 @@
   </header>
 
   <label class="drop" id="drop">
-    <input type="file" id="openInput" accept="application/pdf,.pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="vh" aria-label="Choose a file" />
+    <input type="file" id="openInput" accept="application/pdf,.pdf,.docx,.xlsx,.xlsm,.csv,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" class="vh" aria-label="Choose a file" />
     <div class="drop-ic">＋</div>
     <div class="drop-t">Open a file</div>
-    <div class="drop-s">PDF or Word. Tap to pick from Files, or drop one here</div>
+    <div class="drop-s">PDF, Word or Excel. Tap to pick from Files, or drop one here</div>
   </label>
 
   <h2>Tools</h2>
@@ -38,13 +38,15 @@
     <button class="tile" data-open="merge"><span class="tag pdf">PDF</span><b>Merge PDFs</b><i>Combine several files into one</i></button>
     <button class="tile" data-word="new"><span class="tag doc">DOCX</span><b>New Word doc</b><i>Write and format a document</i></button>
     <button class="tile" data-word="open"><span class="tag doc">DOCX</span><b>Open Word file</b><i>Edit .docx, save as Word or PDF</i></button>
-    <button class="tile soon"><span class="tag xls">XLSX</span><b>Excel</b><i>Coming soon</i></button>
+    <button class="tile" data-xl="new"><span class="tag xls">XLSX</span><b>New spreadsheet</b><i>Formulas, sheets, formats</i></button>
+    <button class="tile" data-xl="open"><span class="tag xls">XLSX</span><b>Open Excel file</b><i>Edit .xlsx or .csv</i></button>
     <button class="tile soon"><span class="tag ppt">PPTX</span><b>PowerPoint</b><i>Coming soon</i></button>
   </div>
 
   <h2>Recent</h2>
   <div id="recent" class="recent"><p class="empty">Files you open show up here, saved on this device.</p></div>
   <input type="file" id="wordInput" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="vh" aria-label="Choose a Word file" />
+  <input type="file" id="xlInput" accept=".xlsx,.xlsm,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" class="vh" aria-label="Choose a spreadsheet" />
   <input type="file" id="mergeInput" accept="application/pdf,.pdf" multiple class="vh" aria-label="Choose PDFs to merge" />
 </section>
 
@@ -124,12 +126,57 @@
 </div>
 
 
+<!-- EXCEL EDITOR -->
+<section id="xlEd" class="screen hidden">
+  <div class="wtop" id="xTop">
+  <header class="ed-top">
+    <button class="ib" id="xBack" title="Back">‹</button>
+    <div class="ed-name"><input id="xName" class="wname" value="Untitled" aria-label="Workbook name" /><small id="xState">Saved</small></div>
+    <button class="ib" id="xUndo" title="Undo">↶</button>
+    <button class="ib" id="xRedo" title="Redo">↷</button>
+    <button class="save" id="xSave">Save</button>
+  </header>
+  <div class="wbar" id="xBar">
+    <button id="xRange" title="Select a range (tap start, then end)">⬚</button>
+    <span class="sep"></span>
+    <button id="xB" title="Bold"><b>B</b></button><button id="xI" title="Italic"><i>I</i></button><button id="xU" title="Underline"><u>U</u></button>
+    <span id="xAlign"><button data-al="left" title="Left">⇤</button><button data-al="center" title="Center">≡</button><button data-al="right" title="Right">⇥</button></span>
+    <span class="swatches" id="xColor" title="Text colour"><button data-c="#111111" style="background:#111"></button><button data-c="#1f4fd1" style="background:#1f4fd1"></button><button data-c="#c62828" style="background:#c62828"></button><button data-c="#1b7a3a" style="background:#1b7a3a"></button></span>
+    <span class="swatches mark" id="xFill" title="Fill"><button data-c="#fff59d" style="background:#fff59d"></button><button data-c="#c8e6c9" style="background:#c8e6c9"></button><button data-c="#bbdefb" style="background:#bbdefb"></button><button data-c="#eeeeee" style="background:#eee"></button><button data-c="none" class="none">⌀</button></span>
+    <select id="xFmt" aria-label="Number format"><option value="gen">General</option><option value="num0">1,234</option><option value="num2">1,234.00</option><option value="ngn">₦ Naira</option><option value="usd">$ Dollar</option><option value="pct">%</option><option value="pct2">0.00%</option><option value="date">Date</option><option value="" hidden>Custom</option></select>
+    <span class="sep"></span>
+    <button id="xSumBtn" title="AutoSum">Σ</button><button id="xSortA" title="Sort A to Z">A↓</button><button id="xSortZ" title="Sort Z to A">Z↓</button>
+    <span class="sep"></span>
+    <button data-rc="addRow" title="Insert row" class="wide">+Row</button><button data-rc="addCol" title="Insert column" class="wide">+Col</button><button data-rc="delRow" title="Delete row" class="wide">−Row</button><button data-rc="delCol" title="Delete column" class="wide">−Col</button><button id="xClear" title="Clear cells" class="wide">Clear</button>
+  </div>
+  <div class="xfx"><input id="xRef" aria-label="Cell" value="A1" /><span>fx</span><input id="xFx" aria-label="Cell contents" autocomplete="off" autocapitalize="off" spellcheck="false" /></div>
+  </div>
+  <div class="xwrap" id="xWrap"><table class="xgrid" id="xGrid"></table><input id="xIn" class="xin hidden" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Edit cell" /></div>
+  <footer class="xfoot"><div class="xtabs" id="xTabs"></div><small id="xSum"></small></footer>
+  <div id="xPrint" class="xprint"></div>
+</section>
+
+<div class="sheet hidden" id="xSaveSheet">
+  <div class="sheet-card">
+    <div class="sheet-h"><b>Save a copy</b><button class="ib" data-close>✕</button></div>
+    <p class="note">Your changes save automatically in Folia and sync to your devices. Get a file to send or keep:</p>
+    <div class="sheet-f"><button class="btn primary" data-x="xlsx">Excel (.xlsx)</button><button class="btn" data-x="csv">CSV</button><button class="btn" data-x="pdf">PDF</button></div>
+  </div>
+</div>
+<div class="sheet hidden" id="xSheetSheet">
+  <div class="sheet-card">
+    <div class="sheet-h"><b>Sheet</b><button class="ib" data-close>✕</button></div>
+    <input id="xSheetName" class="fld" aria-label="Sheet name" />
+    <div class="sheet-f"><button class="btn primary" id="xSheetRename">Rename</button><button class="btn danger" id="xSheetDel">Delete sheet</button></div>
+  </div>
+</div>
+
 <div class="sheet hidden" id="pagesSheet">
   <div class="sheet-card wide">
     <div class="sheet-h"><b>Pages</b><button class="ib" data-close>✕</button></div>
     <div class="thumbs" id="thumbs"></div>
     <div class="sheet-f">
-      <label class="btn"><input type="file" id="addPdfInput" accept="application/pdf,.pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="vh" aria-label="Choose a file" />Add pages from PDF</label>
+      <label class="btn"><input type="file" id="addPdfInput" accept="application/pdf,.pdf,.docx,.xlsx,.xlsm,.csv,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" class="vh" aria-label="Choose a file" />Add pages from PDF</label>
       <button class="btn" id="blankBtn">Add blank page</button>
       <button class="btn" id="splitBtn">Extract selected</button>
     </div>

@@ -36,7 +36,7 @@ async function api(path, { method = 'GET', headers = {}, body, raw } = {}, retri
 }
 const enc = p => p.split('/').map(encodeURIComponent).join('/');
 const safe = n => (n || 'Document.pdf').replace(/[\u20a6]/g, 'N').replace(/[\u2013\u2014]/g, '-').replace(/[^A-Za-z0-9 ._()-]/g, '_').slice(0, 120);
-const mimeOf = r => /\.docx$/i.test(r.name || '') || r.kind === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'application/pdf';
+const mimeOf = r => /\.docx$/i.test(r.name || '') || r.kind === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : /\.xlsx$/i.test(r.name || '') || r.kind === 'xlsx' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'application/pdf';
 const dir = () => S.user.id + '/folia/';
 const keyOf = rec => dir() + rec.id + '__' + safe(rec.name);
 
@@ -80,7 +80,7 @@ async function syncNow() {
     }
     for (const o of cloud) if (!seen.has(o.id)) {
       const bytes = await pull(o); const now = Date.now();
-      await hooks.put({ id: o.id, name: o.name, kind: /\.docx$/i.test(o.name) ? 'docx' : 'pdf', bytes, t: now, synced: now, cv: o.ver, uid: S.user.id });
+      await hooks.put({ id: o.id, name: o.name, kind: /\.docx$/i.test(o.name) ? 'docx' : /\.xlsx$/i.test(o.name) ? 'xlsx' : 'pdf', bytes, t: now, synced: now, cv: o.ver, uid: S.user.id });
     }
     hooks.changed?.();
   })().then(() => hooks.status?.('ok'), e => { console.error(e); hooks.status?.('error', e.message); }).finally(() => { busyP = null; });
