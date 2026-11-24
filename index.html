@@ -4940,11 +4940,22 @@
 
   /* ---------- Playlists ---------- */
   var playlists = [], openPl = null, plSeq = 0, addTrack = null, plReturn = null, creating = false, renamePl = null, plMenuSong = null;
-  function live(pl) { var all = P.tracks(); return pl.items.filter(function (t) { return all.indexOf(t) > -1; }); }
+  function live(pl) { var all = P.tracks(); return pl.items.filter(function (t) { return t.ytId || all.indexOf(t) > -1; }); }
+  // a streamed song's picture: its YouTube thumbnail, cropped square
+  function ytArt(cv, t) {
+    P.paintKey(cv, "yt:" + t.ytId);
+    var im = new Image();
+    im.onload = function () {
+      var g = cv.getContext("2d"), w = im.naturalWidth, h = im.naturalHeight, s2 = Math.min(w, h);
+      g.drawImage(im, (w - s2) / 2, (h - s2) / 2, s2, s2, 0, 0, cv.width, cv.height);
+    };
+    im.src = "https://i.ytimg.com/vi/" + t.ytId + "/mqdefault.jpg";
+  }
   function songs(n) { return n === 1 ? "1 song" : n + " songs"; }
   function canvasFor(pl, items) {
     var cv = document.createElement("canvas"); cv.width = cv.height = 96; cv.setAttribute("aria-hidden", "true");
-    if (pl) { if (pl.coverImg) P.paint(cv, pl); else if (items[0]) P.paint(cv, items[0]); else P.paintKey(cv, "pl:" + pl.id + "|" + pl.name); }
+    if (pl) { if (pl.coverImg) P.paint(cv, pl); else if (items[0] && items[0].ytId) ytArt(cv, items[0]); else if (items[0]) P.paint(cv, items[0]); else P.paintKey(cv, "pl:" + pl.id + "|" + pl.name); }
+    else if (items && items.ytId) ytArt(cv, items);
     else P.paint(cv, items);
     return cv;
   }
@@ -4975,9 +4986,10 @@
     $("plCount").textContent = songs(items.length);
     var n = 0;
     openPl.items.forEach(function (t, k) {
-      if (all.indexOf(t) < 0) return;
+      if (all.indexOf(t) < 0 && !t.ytId) return;
       var li = document.createElement("li"), b = rowBtn(canvasFor(null, t), t.title, t.artist);
-      if (window.NeskaOffline) b.appendChild(window.NeskaOffline.badge(t));
+      if (t.ytId) { var yb = document.createElement("span"); yb.className = "x-plyt"; yb.textContent = "Stream"; b.appendChild(yb); }
+      else if (window.NeskaOffline) b.appendChild(window.NeskaOffline.badge(t));
       b.dataset.at = n++; li.appendChild(b);
       var m = document.createElement("button");
       m.type = "button"; m.className = "x-more"; m.textContent = "⋯"; m.dataset.k = k;
@@ -5051,6 +5063,7 @@
       playlists = fresh.concat(playlists.filter(function (p) { return !p.cloud; }));
       plLoaded = true;
       renderPlaylists();
+      ytLoad(byId);
     }).catch(function () { P.toast("Couldn't load your playlists.", true); });
   }
   function createPlaylist(name) {
@@ -5062,9 +5075,49 @@
     });
   }
   function nextPos(pl) { return pl.pos.length ? Math.max.apply(null, pl.pos) + 1 : 0; }
+  /* Streamed songs in playlists: one JSON file, songs/<user_id>/plyt.json = { playlistId: [{ id, t, a, d, p }] } */
+  function ytPlPath() { return S && S.access && S.user && S.user.id ? S.user.id + "/plyt.json" : null; }
+  var ytSaveT = 0;
+  function ytSave() {
+    clearTimeout(ytSaveT);
+    ytSaveT = setTimeout(function () {
+      var p = ytPlPath(); if (!p) return;
+      var out = {};
+      playlists.forEach(function (pl) {
+        if (!pl.cloud || pl.deleted) return;
+        var a = [];
+        pl.items.forEach(function (t, i) { if (t.ytId) a.push({ id: t.ytId, t: t.title, a: t.artist, d: Math.round(t.duration || 0), p: pl.pos[i] }); });
+        if (a.length) out[pl.id] = a;
+      });
+      api("/storage/v1/object/songs/" + encPath(p), { method: "POST", headers: { "x-upsert": "true" }, body: out })
+        .catch(function () { P.toast("Couldn't save the playlist.", true); });
+    }, 400);
+  }
+  function ytLoad(byId) {
+    var p = ytPlPath(), NS = window.NeskaStream; if (!p || !NS) return;
+    sign(p).then(function (u) {
+      return fetch(u + (u.indexOf("?") < 0 ? "?" : "&") + "cb=" + Date.now(), { cache: "no-store" }).then(function (r) {
+        if (!r.ok) return {};
+        return r.text().then(function (x) { var o = x && x.trim() ? JSON.parse(x) : {}; return o && typeof o === "object" ? o : {}; });
+      });
+    }, function () { return {}; }).then(function (o) {
+      var any = false;
+      Object.keys(o).forEach(function (id) {
+        var pl = byId[id]; if (!pl || !Array.isArray(o[id])) return;
+        o[id].forEach(function (x) {
+          if (!x || !x.id) return;
+          pl.items.push(NS.trackFor(x.id, x.t, x.a, x.d)); pl.pos.push(+x.p || 0); any = true;
+        });
+        var z = pl.items.map(function (t, i) { return [pl.pos[i], i, t]; }).sort(function (a, b) { return a[0] - b[0] || a[1] - b[1]; });
+        pl.items = z.map(function (r) { return r[2]; }); pl.pos = z.map(function (r) { return r[0]; });
+      });
+      if (any) renderPlaylists();
+    }).catch(function () {});
+  }
   function addTo(pl, t) {
     var p = nextPos(pl);
     var done = function () { pl.items.push(t); pl.pos.push(p); renderPlaylists(); P.toast("Added to " + pl.name + "."); };
+    if (t.ytId) { if (window.NeskaStream && window.NeskaStream.keep) window.NeskaStream.keep(t); done(); if (pl.cloud) ytSave(); return; }
     if (!pl.cloud || !S || !t.cloudId) { done(); return; } // this session only
     api("/rest/v1/playlist_tracks", {
       method: "POST", headers: { Prefer: "return=minimal" },
@@ -5206,8 +5259,9 @@
     e.stopPropagation();
     if (plMenuBtn === b && !plMenu.hidden) { closePlMenu(true); return; }
     var k = +b.dataset.k, all = P.tracks(), prev = -1, next = -1;
-    for (var i = k - 1; i >= 0; i--) if (all.indexOf(openPl.items[i]) > -1) { prev = i; break; }
-    for (var j = k + 1; j < openPl.items.length; j++) if (all.indexOf(openPl.items[j]) > -1) { next = j; break; }
+    var on = function (t) { return t && (t.ytId || all.indexOf(t) > -1); };
+    for (var i = k - 1; i >= 0; i--) if (on(openPl.items[i])) { prev = i; break; }
+    for (var j = k + 1; j < openPl.items.length; j++) if (on(openPl.items[j])) { next = j; break; }
     var acts = [["remove", "Remove from playlist"]];
     if (prev > -1) acts.push(["up", "Move up"]);
     if (next > -1) acts.push(["down", "Move down"]);
@@ -5326,6 +5380,7 @@
       pl.deleted = true;
       if (pl.coverURL && /^blob:/.test(pl.coverURL)) URL.revokeObjectURL(pl.coverURL);
       var i = playlists.indexOf(pl); if (i > -1) playlists.splice(i, 1);
+      if (pl.items.some(function (t) { return t.ytId; })) ytSave();
       if (openPl === pl) { closePlaylist(); $("plNew").focus(); } else renderPlaylists();
       P.toast("Playlist deleted.");
     }, function () {
@@ -5343,6 +5398,7 @@
       for (var i = pl.items.length - 1; i >= 0; i--) if (pl.items[i] === t) { pl.items.splice(i, 1); pl.pos.splice(i, 1); }
       renderPlaylists(); P.toast("Removed from " + pl.name + ".");
     };
+    if (t.ytId) { done(); if (pl.cloud) ytSave(); return; }
     if (!saved(pl) || !t.cloudId) { done(); return; }
     api(ptPath(pl, t), { method: "DELETE", headers: { Prefer: "return=minimal" } }).then(done, plFail);
   }
@@ -5353,6 +5409,7 @@
       var m = $("plSongs").querySelector('.x-more[data-k="' + b + '"]'); if (m) m.focus();
     };
     flip(); focusMoved();
+    if (pl.cloud && (ta.ytId || tb.ytId)) ytSave();
     if (!saved(pl) || ta === tb) return;
     var jobs = [];
     // each row takes the other's position; the track id plus old position picks the row
@@ -7358,6 +7415,7 @@
     var n = queue.length, i;
     if (sShuf && n > 1 && dir > 0) { do { i = Math.floor(Math.random() * n); } while (i === qi); }
     else i = qi + dir;
+    if (i >= n && typeof window.NeskaStream.onEnd === "function") { var ho = false; try { ho = window.NeskaStream.onEnd(cur, auto); } catch (e) {} if (ho) return; }
     if (i >= n) { if (sRep === "all" || !auto) i = 0; else { setPlayUI(false); return; } }
     if (i < 0) i = sRep === "all" ? n - 1 : 0;
     qi = i; start(queue[qi]);
@@ -7782,12 +7840,6 @@
   /* ---------- Add to playlist: the library's sheet ---------- */
   $("chipAdd").addEventListener("click", function () {
     var t = P.current(); if (!t) return;
-    if (t.ytId) { // a streamed song joins the YouTube list as a video
-      var Y = window.NeskaYT;
-      if (!Y || !Y.addVideo) return;
-      P.toast(Y.addVideo(t.ytId, t.title + " · " + t.artist, "https://i.ytimg.com/vi/" + t.ytId + "/hqdefault.jpg") ? "Added " + t.title + " to your YouTube list" : "Already in your YouTube list");
-      return;
-    }
     if (typeof window.NeskaAddToPlaylist !== "function") return;
     window.NeskaAddToPlaylist(t, $("chipAdd"));
   });
@@ -7950,7 +8002,7 @@
     w.appendChild(b);
     if (!artist) {
       var add = document.createElement("button"); add.type = "button"; add.className = "x-fadd"; add.innerHTML = ICON_ADD;
-      add.setAttribute("aria-label", "Add " + it.t + " to your YouTube list"); w.appendChild(add);
+      add.setAttribute("aria-label", "Add " + it.t + " to a playlist"); w.appendChild(add);
     }
     li.appendChild(w); return li;
   }
@@ -8050,12 +8102,9 @@
     var w = e.target.closest(".x-ftile"); if (!w) return;
     var key = w.dataset.k, i = +w.dataset.i, it = lists[key] && lists[key][i]; if (!it) return;
     if (e.target.closest(".x-fadd")) {
-      var Y = window.NeskaYT, st = S(); if (!Y || !Y.addVideo || !st) return;
+      var st = S(), btn = e.target.closest(".x-fadd"); if (!st || typeof window.NeskaAddToPlaylist !== "function") return;
       busy(w, true);
-      st.resolve(it.t, it.a).then(function (t) {
-        busy(w, false);
-        P.toast(Y.addVideo(t.ytId, it.t + " · " + it.a, it.img) ? "Added " + it.t + " to your YouTube list" : "Already in your YouTube list");
-      }, function (er) { busy(w, false); fail(er); });
+      st.resolve(it.t, it.a).then(function (t) { busy(w, false); window.NeskaAddToPlaylist(t, btn); }, function (er) { busy(w, false); fail(er); });
       return;
     }
     if (key === "artists") {
@@ -8068,6 +8117,85 @@
   window.addEventListener("online", function () { load(); });
   document.addEventListener("visibilitychange", function () { if (!document.hidden) load(); });
   load();
+})();
+    </script>
+    <style>
+      .x-plyt { flex: none; margin-left: auto; padding: 3px 8px; border-radius: 999px; font: var(--type-caption); font-size: 11px; color: #f7e1cf; border: 1px solid rgba(232, 196, 168, 0.35); background: rgba(255, 240, 245, 0.06); }
+    </style>
+    <script>
+/* ===== Playlists with your songs and streamed songs: plays them in order, handing over between the two players ===== */
+(function () {
+  "use strict";
+  var P = window.NeskaPlayer, NS = window.NeskaStream;
+  if (!P || !NS || !P.playQueue) return;
+  var orig = P.playQueue, mx = null, inside = false, last = null, timer = 0;
+  function runsOf(list) {
+    var out = [];
+    list.forEach(function (t) {
+      var yt = !!t.ytId, r = out[out.length - 1];
+      if (r && r.yt === yt) r.items.push(t); else out.push({ yt: yt, items: [t] });
+    });
+    return out;
+  }
+  function stopMx() { mx = null; last = null; clearInterval(timer); timer = 0; }
+  function playRun(k) {
+    if (!mx) return false;
+    while (k < mx.runs.length) {
+      var r = mx.runs[k]; mx.k = k;
+      if (r.yt) { if (!NS.hasKey()) { P.toast("Add your YouTube key in Settings to stream.", true); k++; continue; } NS.playTracks(r.items, 0); return true; }
+      if (NS.active()) NS.stop();
+      inside = true;
+      var ok = orig.call(P, r.items, 0, false);
+      inside = false;
+      if (ok !== false) { P.showView && P.showView("now"); watch(); return true; }
+      k++; // own songs not playable here (offline with no copy): on to the next run
+    }
+    stopMx(); return false;
+  }
+  function watch() {
+    clearInterval(timer); last = P.current();
+    timer = setInterval(function () {
+      if (!mx) { clearInterval(timer); return; }
+      var r = mx.runs[mx.k]; if (!r || r.yt) { clearInterval(timer); return; }
+      if (NS.active()) { stopMx(); return; } // a stream started from somewhere else
+      var c = P.current(), tail = r.items[r.items.length - 1], a = P.audio && P.audio();
+      if (last === tail && (c !== tail || (a && a.ended))) { // your songs finished: streamed songs next
+        if (mx.k + 1 < mx.runs.length) { playRun(mx.k + 1); return; }
+        stopMx(); return;
+      }
+      if (c && r.items.indexOf(c) < 0) { stopMx(); return; } // you picked something else
+      last = c;
+    }, 600);
+  }
+  P.playQueue = function (ts, at, shuf) {
+    if (inside) return orig.apply(P, arguments);
+    var list = (ts || []).slice();
+    if (!list.some(function (t) { return t && t.ytId; })) { stopMx(); return orig.apply(P, arguments); }
+    var first = list[at || 0];
+    if (shuf) { // shuffle: the chosen song first, the rest in random order
+      var rest = list.filter(function (t, i) { return i !== (at || 0); });
+      for (var i = rest.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), x = rest[i]; rest[i] = rest[j]; rest[j] = x; }
+      list = [first].concat(rest);
+    } else list = list.slice(at || 0);
+    mx = { runs: runsOf(list), k: 0 };
+    return playRun(0) ? true : false;
+  };
+  var prevEnd = NS.onEnd;
+  NS.onEnd = function (cur, auto) { // streamed songs finished: your songs next
+    if (mx) {
+      var r = mx.runs[mx.k];
+      if (r && r.yt && r.items[r.items.length - 1] === cur) {
+        if (mx.k + 1 < mx.runs.length) { setTimeout(function () { playRun(mx.k + 1); }, 0); return true; }
+        stopMx();
+      }
+    }
+    return typeof prevEnd === "function" ? prevEnd(cur, auto) : false;
+  };
+  var prevStart = NS.onStart;
+  NS.onStart = function (t, qi, n) {
+    if (mx) { var r = mx.runs[mx.k]; if (!r || !r.yt || r.items.indexOf(t) < 0) stopMx(); }
+    if (typeof prevStart === "function") return prevStart(t, qi, n);
+  };
 })();
     </script>
     <script>
