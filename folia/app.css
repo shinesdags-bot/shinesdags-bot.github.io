@@ -167,3 +167,49 @@ h2{font-size:13px;text-transform:uppercase;letter-spacing:1.2px;color:var(--mute
   .xprint table{border-collapse:collapse;font:10pt Calibri,Arial,sans-serif}.xprint td{border:1px solid #bbb;padding:3px 6px;white-space:nowrap}
 }
 #xWrap:focus{outline:none}
+
+/* powerpoint */
+#pptEd{display:flex;flex-direction:column;height:100dvh;background:#e9e8e3}
+.wbar button:disabled{opacity:.35}
+.pbody{flex:1;display:flex;min-height:0}
+.pthumbs{width:184px;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:10px;background:#f3f2ee;border-right:1px solid var(--line)}
+.pthumb{display:flex;gap:6px;align-items:flex-start;padding:4px;border-radius:8px}
+.pthumb span{font-size:11px;color:var(--mute);width:14px;text-align:right}
+.pthumb .pslide{box-shadow:0 0 0 1px #d6d4cc;pointer-events:none}
+.pthumb.on .pslide{box-shadow:0 0 0 2.5px var(--green)}
+.pstagewrap{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:12px;min-width:0}
+.pslide{position:relative;overflow:hidden;flex:none;background:#fff}
+.pstage{box-shadow:0 4px 18px rgba(0,0,0,.14);touch-action:none}
+.pshape{position:absolute;overflow:hidden}
+.pshape img{width:100%;height:100%;display:block;object-fit:fill;pointer-events:none}
+.ptb{position:absolute;inset:0;display:flex;flex-direction:column;box-sizing:border-box;overflow:visible}
+.ptx{outline:none;word-wrap:break-word;overflow-wrap:break-word}
+.ptx p{margin:0;position:relative}
+.ptx p[data-bu]::before{content:attr(data-bu);display:inline-block;width:var(--bw,0.8em);text-indent:0;text-decoration:none;font-weight:400;font-style:normal}
+.pstage .ptx p[data-hint]::after{content:attr(data-hint);color:#9a9a9a;pointer-events:none}
+.pstage .ptx p[data-hint] br{display:none}
+.pshape.pedit{cursor:move;overflow:visible}
+.pshape.pedit.editing{cursor:text}.pshape.editing .ptx{user-select:text;-webkit-user-select:text}
+.pstage .pshape.pedit:hover{outline:1px dashed rgba(29,111,95,.5)}
+.pshape.sel{outline:2px solid var(--green)!important;outline-offset:1px}
+.prz{display:none;position:absolute;right:-8px;bottom:-8px;width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid var(--green);cursor:nwse-resize;z-index:5}
+.pshape.sel:not(.editing) .prz{display:block}
+@media(pointer:coarse){.prz{width:24px;height:24px;right:-12px;bottom:-12px}}
+.pmissing{display:flex;align-items:center;justify-content:center;background:repeating-linear-gradient(45deg,#f4f4f4,#f4f4f4 8px,#ececec 8px,#ececec 16px);color:#888;font-size:12px}
+.ptbl{border-collapse:collapse;width:100%;height:100%}.ptbl td{border:1px solid #fff;background:#e8eef7;padding:2px 4px;vertical-align:top;overflow:hidden}
+.pfoot{display:flex;align-items:center;justify-content:center;gap:14px;padding:2px 8px calc(var(--safe-b) + 2px);background:#f7f6f2;border-top:1px solid var(--line)}
+.pfoot small{color:var(--mute);min-width:52px;text-align:center}
+@media(max-width:700px){
+  .pbody{flex-direction:column-reverse}
+  .pthumbs{width:auto;flex-direction:row;overflow-x:auto;overflow-y:hidden;border-right:0;border-top:1px solid var(--line);padding:8px;height:auto;flex:none}
+  .pthumb{flex-direction:column;align-items:center;gap:2px}.pthumb span{width:auto}
+  .pthumb .pslide{zoom:.62}
+}
+.pprint{display:none}
+@media print{
+  body.printing-p>*:not(#pptEd){display:none!important}
+  body.printing-p #pptEd>*:not(#pPrint){display:none!important}
+  body.printing-p #pptEd{display:block;height:auto;background:#fff}
+  body.printing-p .pprint{display:block}
+  .pprintpage{break-after:page;page-break-after:always;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}

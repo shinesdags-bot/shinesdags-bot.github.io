@@ -26,10 +26,10 @@
   </header>
 
   <label class="drop" id="drop">
-    <input type="file" id="openInput" accept="application/pdf,.pdf,.docx,.xlsx,.xlsm,.csv,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" class="vh" aria-label="Choose a file" />
+    <input type="file" id="openInput" accept="application/pdf,.pdf,.docx,.xlsx,.xlsm,.csv,.pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" class="vh" aria-label="Choose a file" />
     <div class="drop-ic">＋</div>
     <div class="drop-t">Open a file</div>
-    <div class="drop-s">PDF, Word or Excel. Tap to pick from Files, or drop one here</div>
+    <div class="drop-s">PDF, Word, Excel or PowerPoint. Tap to pick from Files, or drop one here</div>
   </label>
 
   <h2>Tools</h2>
@@ -40,13 +40,15 @@
     <button class="tile" data-word="open"><span class="tag doc">DOCX</span><b>Open Word file</b><i>Edit .docx, save as Word or PDF</i></button>
     <button class="tile" data-xl="new"><span class="tag xls">XLSX</span><b>New spreadsheet</b><i>Formulas, sheets, formats</i></button>
     <button class="tile" data-xl="open"><span class="tag xls">XLSX</span><b>Open Excel file</b><i>Edit .xlsx or .csv</i></button>
-    <button class="tile soon"><span class="tag ppt">PPTX</span><b>PowerPoint</b><i>Coming soon</i></button>
+    <button class="tile" data-ppt="new"><span class="tag ppt">PPTX</span><b>New presentation</b><i>Slides, text, pictures</i></button>
+    <button class="tile" data-ppt="open"><span class="tag ppt">PPTX</span><b>Open PowerPoint</b><i>Edit .pptx slides</i></button>
   </div>
 
   <h2>Recent</h2>
   <div id="recent" class="recent"><p class="empty">Files you open show up here, saved on this device.</p></div>
   <input type="file" id="wordInput" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="vh" aria-label="Choose a Word file" />
   <input type="file" id="xlInput" accept=".xlsx,.xlsm,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" class="vh" aria-label="Choose a spreadsheet" />
+  <input type="file" id="pptInput" accept=".pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation" class="vh" aria-label="Choose a presentation" />
   <input type="file" id="mergeInput" accept="application/pdf,.pdf" multiple class="vh" aria-label="Choose PDFs to merge" />
 </section>
 
@@ -168,6 +170,53 @@
     <div class="sheet-h"><b>Sheet</b><button class="ib" data-close>✕</button></div>
     <input id="xSheetName" class="fld" aria-label="Sheet name" />
     <div class="sheet-f"><button class="btn primary" id="xSheetRename">Rename</button><button class="btn danger" id="xSheetDel">Delete sheet</button></div>
+  </div>
+</div>
+
+<!-- POWERPOINT EDITOR -->
+<section id="pptEd" class="screen hidden">
+  <div class="wtop" id="pTop">
+  <header class="ed-top">
+    <button class="ib" id="pBack" title="Back">‹</button>
+    <div class="ed-name"><input id="pName" class="wname" value="Untitled" aria-label="Presentation name" /><small id="pState">Saved</small></div>
+    <button class="ib" id="pUndo" title="Undo">↶</button>
+    <button class="ib" id="pRedo" title="Redo">↷</button>
+    <button class="save" id="pSave">Save</button>
+  </header>
+  <div class="wbar" id="pBar">
+    <button id="pAddSlide" class="wide" title="New slide">+ Slide</button><button id="pSlideMenu" class="wide" title="Slide options">Slide ▾</button>
+    <span class="sep"></span>
+    <button id="pText" class="wide" title="Add text box">T Text</button><button id="pImg" class="wide" title="Add picture">▣ Picture</button>
+    <span class="sep"></span>
+    <button id="pB" data-need title="Bold"><b>B</b></button><button id="pI" data-need title="Italic"><i>I</i></button><button id="pU" data-need title="Underline"><u>U</u></button>
+    <button id="pSmall" data-need title="Smaller text">A−</button><button id="pBig" data-need title="Bigger text">A+</button>
+    <span id="pAlign"><button data-al="l" data-need title="Left">⇤</button><button data-al="ctr" data-need title="Center">≡</button><button data-al="r" data-need title="Right">⇥</button></span>
+    <span class="swatches" id="pColor" title="Text colour"><button data-need data-c="#111111" style="background:#111"></button><button data-need data-c="#ffffff" style="background:#fff;border:1px solid #ccc"></button><button data-need data-c="#1f4fd1" style="background:#1f4fd1"></button><button data-need data-c="#c62828" style="background:#c62828"></button><button data-need data-c="#1b7a3a" style="background:#1b7a3a"></button></span>
+    <span class="swatches mark" id="pFill" title="Shape fill"><button data-need data-c="#1d6f5f" style="background:#1d6f5f"></button><button data-need data-c="#fff59d" style="background:#fff59d"></button><button data-need data-c="#bbdefb" style="background:#bbdefb"></button><button data-need data-c="#eeeeee" style="background:#eee"></button><button data-need data-c="none" class="none">⌀</button></span>
+    <span class="sep"></span>
+    <button id="pDel" data-need class="wide" title="Delete selected">Delete</button>
+  </div>
+  </div>
+  <div class="pbody">
+    <div class="pthumbs" id="pThumbs"></div>
+    <div class="pstagewrap" id="pStageWrap"><div class="pslide pstage" id="pStage"></div></div>
+  </div>
+  <footer class="pfoot"><button class="ib" id="pPrev" title="Previous slide">‹</button><small id="pCount">1 / 1</small><button class="ib" id="pNext" title="Next slide">›</button></footer>
+  <input type="file" id="pImgInput" accept="image/*" class="vh" aria-label="Choose a picture" />
+  <div id="pPrint" class="pprint"></div>
+</section>
+
+<div class="sheet hidden" id="pSaveSheet">
+  <div class="sheet-card">
+    <div class="sheet-h"><b>Save a copy</b><button class="ib" data-close>✕</button></div>
+    <p class="note">Your changes save automatically in Folia and sync to your devices. Get a file to send or keep:</p>
+    <div class="sheet-f"><button class="btn primary" data-x="pptx">PowerPoint (.pptx)</button><button class="btn" data-x="pdf">PDF</button></div>
+  </div>
+</div>
+<div class="sheet hidden" id="pSlideSheet">
+  <div class="sheet-card">
+    <div class="sheet-h"><b>This slide</b><button class="ib" data-close>✕</button></div>
+    <div class="sheet-f"><button class="btn" id="pDup">Duplicate</button><button class="btn" id="pUp">Move up</button><button class="btn" id="pDown">Move down</button><button class="btn danger" id="pDelSlide">Delete</button></div>
   </div>
 </div>
 
