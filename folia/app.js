@@ -357,7 +357,7 @@ async function openEditText() {
       onError: m => { toast("This PDF's text can't be edited here: " + m, 5000); closeEditText(false); },
       onWarning: m => { if (!warned) { warned = true; toast(m, 5000); } },
     });
-  } catch (e) { console.error(e); toast("Couldn't start text editing. Use Whiteout + Add text instead.", 4500); $('#ptEd').classList.add('hidden'); $('#editor').classList.remove('hidden'); }
+  } catch (e) { console.error(e); toast("Couldn't start text editing (" + (e?.message || e) + "). Use Whiteout + Add text instead.", 6000); $('#ptEd').classList.add('hidden'); $('#editor').classList.remove('hidden'); }
   busy(false);
 }
 async function closeEditText(keep) {

@@ -2,3 +2,4 @@ pdfedit 0.1.0 (https://github.com/hikashop-nicolas/pdfedit) - MIT licence (packa
 Bundled with pdfjs-dist 6.0.227 (Apache-2.0), pdf-lib 1.17.1 (MIT), @pdf-lib/fontkit (MIT), opentype.js 2 (MIT).
 Bundled for Folia with esbuild on 2026-11-24.
 Folia patch: zero-width space glyphs in subset fonts fall back to the standard font's space (fixes words running together).
+2026-11-25: switched to pdf.js legacy build (polyfilled) so it runs on iOS Safari before 26.
