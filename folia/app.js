@@ -348,7 +348,7 @@ async function openEditText() {
   busy(true, 'Getting text ready…');
   try {
     const bytes = pristine() ? docs[0].bytes.slice() : new Uint8Array(await buildPdf(pages));
-    ptMod ||= await import('./vendor/pdfedit.min.mjs');
+    if (!ptMod) { let err; for (let k = 0; k < 3 && !ptMod; k++) { try { if (k) { toast('Downloading the text editor… (try ' + (k + 1) + ')'); await new Promise(r => setTimeout(r, 1500)); } ptMod = await import('./vendor/pdfedit.min.mjs' + (k ? '?r=' + Date.now() : '')); } catch (e) { err = e; } } if (!ptMod) throw new Error((err && err.message || 'download failed') + ' — check your connection and tap Edit text again'); }
     $('#editor').classList.add('hidden'); $('#ptEd').classList.remove('hidden');
     const host = $('#ptHost'); host.innerHTML = '';
     let warned = false;
@@ -518,3 +518,5 @@ renderRecent();
 window.__folia = { get pages() { return pages; }, buildPdf, openBuffers, setTool };
 // ?open=test/x.pdf opens a file shipped with Folia (same-origin paths only; used for testing)
 { const o = new URLSearchParams(location.search).get('open'); if (o && /^[\w\-\/]+\.(pdf|docx|xlsx|pptx|csv)$/i.test(o) && !o.startsWith('/') && !o.includes('..')) fetch(o).then(r => r.ok ? r.blob() : Promise.reject()).then(b => openFiles([new File([b], o.split('/').pop(), { type: b.type })])).catch(() => toast("Couldn't open that file.")); }
+// warm the big Edit-text libraries in the background so tapping Edit text never waits on a slow network
+setTimeout(() => { for (const f of ['vendor/pdfedit.min.mjs', 'vendor/pdfedit.worker.min.mjs']) fetch(f).catch(() => {}); }, 4000);
