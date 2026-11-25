@@ -224,3 +224,5 @@ h2{font-size:13px;text-transform:uppercase;letter-spacing:1.2px;color:var(--mute
  --pdfedit-chrome:#f7f6f2;--pdfedit-desk:#e9e8e3;--pdfedit-text:#1d1d1b;--pdfedit-muted:#6b6a64;--pdfedit-btn:#fff;--pdfedit-btn-border:#d6d4cc;--pdfedit-border:#d6d4cc;--pdfedit-input-bg:#fff;--pdfedit-accent:#1d6f5f;--pdfedit-on:#dcefe9;--pdfedit-on-text:#123}
 .pthost .pdfedit-toolbar{position:sticky;top:0;z-index:20;flex-wrap:wrap}
 @media(pointer:coarse){.pthost .pdfedit-toolbar button,.pthost .pdfedit-toolbar select{min-height:34px;min-width:34px}}
+.pthost .pdfedit-para{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
+.pthost .pdfedit-para.fo-tap{opacity:1!important;background:var(--bg,#fff);box-shadow:0 0 0 2px #1d6f5f}

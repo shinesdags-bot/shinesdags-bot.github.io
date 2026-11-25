@@ -372,6 +372,21 @@ async function closeEditText(keep) {
   if (!keep && ed.isDirty() && !confirm('Discard your text edits?')) { ptEditor = ed; return; }
   ed.destroy(); $('#ptHost').innerHTML = ''; $('#ptEd').classList.add('hidden'); $('#editor').classList.remove('hidden');
 }
+// iPhone/iPad: WebKit won't place a caret in the invisible (opacity 0) text overlay pdfedit uses,
+// so on a touch tap we reveal the tapped paragraph, focus it and put the caret where the finger was.
+{ const host = $('#ptHost'); let p0 = null;
+  host.addEventListener('touchstart', e => { const t = e.touches[0]; p0 = e.touches.length === 1 ? { x: t.clientX, y: t.clientY, t: Date.now() } : null; }, { capture: true, passive: true });
+  host.addEventListener('touchend', ev => { const t = ev.changedTouches[0]; const e = { clientX: t.clientX, clientY: t.clientY };
+    if (!p0 || Math.hypot(e.clientX - p0.x, e.clientY - p0.y) > 10 || Date.now() - p0.t > 600) return; p0 = null;
+    const el = document.elementFromPoint(e.clientX, e.clientY)?.closest?.('.pdfedit-para'); if (!el || el.contentEditable !== 'true') return;
+    $$('#ptHost .fo-tap').forEach(x => x !== el && x.classList.remove('fo-tap'));
+    el.classList.add('fo-tap');
+    if (document.activeElement !== el) el.focus({ preventScroll: true });
+    const r = document.caretRangeFromPoint?.(e.clientX, e.clientY);
+    if (r && el.contains(r.startContainer)) { const s = getSelection(); s.removeAllRanges(); s.addRange(r); }
+  }, true);
+  host.addEventListener('focusout', e => { const el = e.target.closest?.('.pdfedit-para'); if (el) setTimeout(() => { if (document.activeElement !== el) el.classList.remove('fo-tap'); }, 0); }, true);
+}
 $('#ptDone').onclick = () => closeEditText(true);
 $('#ptCancel').onclick = () => closeEditText(false);
 $('#ptUndo').onclick = () => ptEditor?.canUndo() && ptEditor.undo();
