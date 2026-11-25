@@ -225,4 +225,9 @@ h2{font-size:13px;text-transform:uppercase;letter-spacing:1.2px;color:var(--mute
 .pthost .pdfedit-toolbar{position:sticky;top:0;z-index:20;flex-wrap:wrap}
 @media(pointer:coarse){.pthost .pdfedit-toolbar button,.pthost .pdfedit-toolbar select{min-height:34px;min-width:34px}}
 .pthost .pdfedit-para{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
-.pthost .pdfedit-para.fo-tap{opacity:1!important;background:var(--bg,#fff);box-shadow:0 0 0 2px #1d6f5f}
+.rtsheet{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.35);display:flex;align-items:flex-start;justify-content:center;padding:calc(env(safe-area-inset-top) + 60px) 12px 0}
+.rtsheet.hidden{display:none}
+.rtbox{background:#fff;border-radius:16px;width:100%;max-width:560px;padding:12px;box-shadow:0 10px 30px rgba(0,0,0,.25);display:flex;flex-direction:column;gap:8px}
+.rthead{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.rtbox textarea{width:100%;box-sizing:border-box;font-size:17px;padding:10px;border:1px solid #d6d4cc;border-radius:10px;resize:vertical;min-height:90px}
+.rtbox small{color:#6b6a64}

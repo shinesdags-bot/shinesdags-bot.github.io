@@ -1,5 +1,5 @@
 // Folia service worker: network-first, falls back to cache offline. CACHE stamped on deploy.
-const CACHE = "folia-20261125205026";
+const CACHE = "folia-20261125210705";
 const SHELL = ["./", "index.html", "app.css", "app.js", "sync.js", "word.js", "excel.js", "ppt.js", "vendor/pdfedit.min.mjs", "vendor/pdfedit.worker.min.mjs", "vendor/blank.pptx", "vendor/exceljs.min.js", "vendor/hyperformula.full.min.js", "vendor/mammoth.browser.min.js", "vendor/fflate.min.js", "vendor/docx.iife.js", "vendor/docx-math.iife.js", "vendor/docx-html.iife.js", "manifest.webmanifest", "icon-192.png", "icon-512.png", "vendor/pdf.min.mjs", "vendor/pdf.worker.min.mjs", "vendor/pdf-lib.min.js"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: "reload" })))).catch(() => {})); self.skipWaiting(); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith("folia-") && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });

@@ -372,20 +372,43 @@ async function closeEditText(keep) {
   if (!keep && ed.isDirty() && !confirm('Discard your text edits?')) { ptEditor = ed; return; }
   ed.destroy(); $('#ptHost').innerHTML = ''; $('#ptEd').classList.add('hidden'); $('#editor').classList.remove('hidden');
 }
-// iPhone/iPad: WebKit won't place a caret in the invisible (opacity 0) text overlay pdfedit uses,
-// so on a touch tap we reveal the tapped paragraph, focus it and put the caret where the finger was.
+// iPhone/iPad: WebKit won't edit pdfedit's invisible (opacity 0) text overlay on a tap, so on touch
+// we open our own retype sheet (a plain textarea, which iOS handles reliably) and write the change
+// back into the paragraph with the smallest possible DOM edit, so its fonts and styled runs stay.
+const paraText = el => { const out = []; const walk = n => { for (const c of n.childNodes) { if (c.nodeType === 3) out.push({ n: c, s: c.data }); else if (c.nodeName === 'BR') out.push({ n: c, s: '\n', br: true }); else walk(c); } }; walk(el); return out; };
+function locate(parts, off, el) { let k = 0; for (const p of parts) { if (off <= k + p.s.length && !p.br) return [p.n, off - k]; if (off <= k && p.br) { const par = p.n.parentNode; return [par, [...par.childNodes].indexOf(p.n)]; } k += p.s.length; } return [el, el.childNodes.length]; }
+function retypePara(el, next) {
+  const parts = paraText(el), old = parts.map(p => p.s).join(''); if (old === next) return false;
+  let a = 0; while (a < old.length && a < next.length && old[a] === next[a]) a++;
+  let b = 0; while (b < old.length - a && b < next.length - a && old[old.length - 1 - b] === next[next.length - 1 - b]) b++;
+  el.focus({ preventScroll: true });
+  const r = document.createRange(); const [sn, so] = locate(parts, a, el); const [en, eo] = locate(parts, old.length - b, el);
+  r.setStart(sn, so); r.setEnd(en, eo); r.deleteContents();
+  const mid = next.slice(a, next.length - b);
+  if (mid) { const frag = document.createDocumentFragment(); mid.split('\n').forEach((t, k) => { if (k) frag.appendChild(document.createElement('br')); if (t) frag.appendChild(document.createTextNode(t)); });
+    if (r.startContainer.nodeType === 3 && !mid.includes('\n')) r.startContainer.insertData(r.startOffset, mid); else r.insertNode(frag); }
+  el.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: mid }));
+  el.blur(); return true;
+}
+let rtEl = null;
+function openRetype(el) {
+  rtEl = el; const ta = $('#rtText'); ta.value = paraText(el).map(p => p.s).join('');
+  $('#rtSheet').classList.remove('hidden'); setTimeout(() => { ta.focus(); }, 30);
+}
+$('#rtCancel').onclick = () => { $('#rtSheet').classList.add('hidden'); rtEl = null; };
+$('#rtApply').onclick = () => { const el = rtEl; $('#rtSheet').classList.add('hidden'); rtEl = null; if (el && retypePara(el, $('#rtText').value)) toast('Changed. Tap Done when finished.'); };
 { const host = $('#ptHost'); let p0 = null;
+  const paraAt = (x, y) => { let best = null, area = 1e12; for (const el of $$('#ptHost .pdfedit-para')) { if (el.contentEditable !== 'true') continue; const r = el.getBoundingClientRect(); if (x >= r.left - 3 && x <= r.right + 3 && y >= r.top - 3 && y <= r.bottom + 3 && r.width * r.height < area) { best = el; area = r.width * r.height; } } return best; };
   host.addEventListener('touchstart', e => { const t = e.touches[0]; p0 = e.touches.length === 1 ? { x: t.clientX, y: t.clientY, t: Date.now() } : null; }, { capture: true, passive: true });
-  host.addEventListener('touchend', ev => { const t = ev.changedTouches[0]; const e = { clientX: t.clientX, clientY: t.clientY };
-    if (!p0 || Math.hypot(e.clientX - p0.x, e.clientY - p0.y) > 10 || Date.now() - p0.t > 600) return; p0 = null;
-    const el = document.elementFromPoint(e.clientX, e.clientY)?.closest?.('.pdfedit-para'); if (!el || el.contentEditable !== 'true') return;
-    $$('#ptHost .fo-tap').forEach(x => x !== el && x.classList.remove('fo-tap'));
-    el.classList.add('fo-tap');
-    if (document.activeElement !== el) el.focus({ preventScroll: true });
-    const r = document.caretRangeFromPoint?.(e.clientX, e.clientY);
-    if (r && el.contains(r.startContainer)) { const s = getSelection(); s.removeAllRanges(); s.addRange(r); }
-  }, true);
-  host.addEventListener('focusout', e => { const el = e.target.closest?.('.pdfedit-para'); if (el) setTimeout(() => { if (document.activeElement !== el) el.classList.remove('fo-tap'); }, 0); }, true);
+  host.addEventListener('touchend', ev => { const t = ev.changedTouches[0];
+    if (!p0 || Math.hypot(t.clientX - p0.x, t.clientY - p0.y) > 10 || Date.now() - p0.t > 700) return; p0 = null;
+    if (ev.target.closest?.('.pdfedit-toolbar,.pdfedit-img,.pdfedit-white,.pdfedit-grip')) return;
+    const el = paraAt(t.clientX, t.clientY); if (!el) return;
+    if (el.closest('[data-fo-new]') || el.classList.contains('pdfedit-new')) return;
+    ev.preventDefault(); openRetype(el);
+  }, { capture: true, passive: false });
+  // test hook: ?rt=1 makes a mouse click open the retype sheet like a tap does on iPhone
+  if (/[?&]rt=1/.test(location.search)) host.addEventListener('click', e => { if (e.target.closest?.('.pdfedit-toolbar')) return; const el = paraAt(e.clientX, e.clientY); if (el) { e.preventDefault(); e.stopPropagation(); openRetype(el); } }, true);
 }
 $('#ptDone').onclick = () => closeEditText(true);
 $('#ptCancel').onclick = () => closeEditText(false);
