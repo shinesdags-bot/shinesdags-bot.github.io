@@ -1,0 +1,23 @@
+name: Neska Windows build
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["desktop/**", ".github/workflows/neska-windows.yml"]
+permissions:
+  contents: write
+jobs:
+  win:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+      - name: Build installer
+        working-directory: desktop
+        shell: bash
+        run: npm install --no-audit --no-fund && npm run dist && ls -l dist
+      - name: Publish
+        shell: bash
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: gh release create "windows-${{ github.run_number }}" "desktop/dist/Neska-Setup.exe" --latest --title "Neska Music for Windows (build ${{ github.run_number }})" --notes "Windows installer. If SmartScreen warns, choose More info, then Run anyway."
