@@ -35,6 +35,7 @@
   <h2>Tools</h2>
   <div class="tiles">
     <button class="tile" data-open="pdf"><span class="tag pdf">PDF</span><b>Edit &amp; sign</b><i>Text, whiteout, highlight, draw, sign, pages</i></button>
+    <button class="tile" data-scan="1"><span class="tag pdf">OCR</span><b>Scan to PDF</b><i>Photos or a camera shot into a PDF with real text</i></button>
     <button class="tile" data-open="merge"><span class="tag pdf">PDF</span><b>Merge PDFs</b><i>Combine several files into one</i></button>
     <button class="tile" data-word="new"><span class="tag doc">DOCX</span><b>New Word doc</b><i>Write and format a document</i></button>
     <button class="tile" data-word="open"><span class="tag doc">DOCX</span><b>Open Word file</b><i>Edit .docx, save as Word or PDF</i></button>
@@ -49,6 +50,7 @@
   <input type="file" id="wordInput" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="vh" aria-label="Choose a Word file" />
   <input type="file" id="xlInput" accept=".xlsx,.xlsm,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" class="vh" aria-label="Choose a spreadsheet" />
   <input type="file" id="pptInput" accept=".pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation" class="vh" aria-label="Choose a presentation" />
+  <input type="file" id="scanInput" accept="image/*" multiple class="vh" aria-label="Choose photos to scan" />
   <input type="file" id="mergeInput" accept="application/pdf,.pdf" multiple class="vh" aria-label="Choose PDFs to merge" />
 </section>
 
@@ -85,6 +87,7 @@
     <button data-t="draw"><span>✎</span>Draw</button>
     <button data-t="image"><span>▣</span>Image</button>
     <button data-t="sign"><span>✍</span>Sign</button>
+    <button data-t="ocr" id="ocrBtn"><span>⌕</span>OCR</button>
   </nav>
   <input type="file" id="imgInput" accept="image/*" class="vh" aria-label="Choose an image" />
 </section>
@@ -280,6 +283,12 @@
   </div>
 </div>
 
+<div class="sheet hidden" id="ocrSheet"><div class="sheet-card">
+  <div class="sheet-h"><b>Recognized text</b><button class="ib" id="ocrClose">✕</button></div>
+  <p class="sub" id="ocrMsg"></p>
+  <textarea id="ocrText" class="fld" rows="10" style="width:100%;box-sizing:border-box;font-size:15px"></textarea>
+  <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn" id="ocrCopy">Copy text</button><button class="btn" id="ocrWord">Open as Word doc</button><button class="btn save" id="ocrEdit">Edit text in PDF</button></div>
+</div></div>
 <div class="toast hidden" id="toast"></div>
 <div class="busy hidden" id="busy"><div class="spin"></div><span id="busyT">Working…</span></div>
 

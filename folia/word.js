@@ -86,8 +86,9 @@ export async function openWord(file, id) {
   catch (e) { console.error(e); ctx.toast("Couldn't open that Word file."); }
   ctx.busy(false);
 }
-export async function newWord() {
+export async function newWord(html, name) {
   ctx.busy(true, 'Starting…');
+  if (typeof html === 'string') { try { await libs(); await show(html || '<p><br></p>', name || 'Untitled.docx', Math.random().toString(36).slice(2, 10)); dirty = true; await autosave(); } catch (e) { console.error(e); ctx.toast("Couldn't start a document."); } ctx.busy(false); return; }
   try { await libs(); await show('<h1>Untitled</h1><p><br></p>', 'Untitled.docx', Math.random().toString(36).slice(2, 10)); dirty = true; await autosave();
     const h = ed().querySelector('h1'); const r = document.createRange(); r.selectNodeContents(h); const s = getSelection(); s.removeAllRanges(); s.addRange(r); ed().focus(); }
   catch (e) { console.error(e); ctx.toast("Couldn't start a document."); }

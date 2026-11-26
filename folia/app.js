@@ -237,7 +237,7 @@ function placeImage(dataURL, wpt) {
 }
 const toPNG = (src, max = 1600) => new Promise(r => { const im = new Image(); im.onload = () => { const k = Math.min(1, max / Math.max(im.width, im.height)); const c = document.createElement('canvas'); c.width = im.width * k; c.height = im.height * k; c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); r(c.toDataURL('image/png')); }; im.src = src; });
 
-function setTool(t) { if (t === 'edittext') return openEditText(); if (editing) stopEdit(); tool = t; $$('#toolbar button').forEach(b => b.classList.toggle('on', b.dataset.t === t)); $$('.layer').forEach(l => l.classList.toggle('drawing', ['draw', 'whiteout', 'highlight', 'text'].includes(t))); }
+function setTool(t) { if (t === 'edittext') return openEditText(); if (t === 'ocr') return runOcr(); if (editing) stopEdit(); tool = t; $$('#toolbar button').forEach(b => b.classList.toggle('on', b.dataset.t === t)); $$('.layer').forEach(l => l.classList.toggle('drawing', ['draw', 'whiteout', 'highlight', 'text'].includes(t))); }
 
 // ---------- props ----------
 $('#pSize').onchange = e => { props.size = +e.target.value; applyToSel({ size: props.size }); };
@@ -520,3 +520,36 @@ window.__folia = { get pages() { return pages; }, buildPdf, openBuffers, setTool
 { const o = new URLSearchParams(location.search).get('open'); if (o && /^[\w\-\/]+\.(pdf|docx|xlsx|pptx|csv)$/i.test(o) && !o.startsWith('/') && !o.includes('..')) fetch(o).then(r => r.ok ? r.blob() : Promise.reject()).then(b => openFiles([new File([b], o.split('/').pop(), { type: b.type })])).catch(() => toast("Couldn't open that file.")); }
 // warm the big Edit-text libraries in the background so tapping Edit text never waits on a slow network
 setTimeout(() => { for (const f of ['vendor/pdfedit.min.mjs', 'vendor/pdfedit.worker.min.mjs']) fetch(f).catch(() => {}); }, 4000);
+
+// ---------- OCR (text recognition) ----------
+let ocrMod = null;
+const getOcr = async () => ocrMod ||= await import('./ocr.js');
+function showOcr(text, msg) { $('#ocrText').value = text.trim(); $('#ocrMsg').textContent = msg; $('#ocrSheet').classList.remove('hidden'); }
+$('#ocrClose').onclick = () => $('#ocrSheet').classList.add('hidden');
+$('#ocrCopy').onclick = async () => { try { await navigator.clipboard.writeText($('#ocrText').value); toast('Copied'); } catch { $('#ocrText').select(); document.execCommand('copy'); toast('Copied'); } };
+$('#ocrEdit').onclick = () => { $('#ocrSheet').classList.add('hidden'); if (!$('#editor').classList.contains('hidden')) openEditText(); };
+$('#ocrWord').onclick = () => { const t = $('#ocrText').value; $('#ocrSheet').classList.add('hidden');
+  const esc = s => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
+  newWord(t.split(/\n{2,}/).map(p => '<p>' + esc(p).replace(/\n/g, '<br>') + '</p>').join(''), docName.replace(/\.pdf$/i, '') + ' (text).docx'); };
+async function runOcr() {
+  if (editing) stopEdit(); if (!pages.length) return;
+  busy(true, 'Getting the text recognizer ready…');
+  try {
+    const O = await getOcr();
+    const bytes = pristine() ? docs[0].bytes.slice() : new Uint8Array(await buildPdf(pages));
+    const r = await O.ocrPdf(bytes, pdfjsLib, t => $('#busyT').textContent = t);
+    if (r.done) { const name = docName, id = recentId || uid(); await openBuffers([{ name, bytes: r.bytes }], id); recentId = id; await touchRecent(id, name, r.bytes); dirty = false; }
+    busy(false);
+    showOcr(r.text, r.done ? `Recognized text on ${r.done} of ${r.pages} page${r.pages > 1 ? 's' : ''}. The PDF now has real text, so you can tap Edit text and change it, or copy it.` : 'This PDF already has real text, so it did not need OCR. Tap Edit text to change it.');
+  } catch (e) { console.error(e); busy(false); toast("Text recognition failed (" + (e?.message || e) + "). Check your connection and try again.", 6000); }
+}
+$$('.tile[data-scan]').forEach(t => t.onclick = () => $('#scanInput').click());
+$('#scanInput').onchange = async e => { const fs = [...e.target.files]; e.target.value = ''; if (!fs.length) return;
+  busy(true, 'Getting the text recognizer ready…');
+  try { const O = await getOcr(); const r = await O.photosToPdf(fs, t => $('#busyT').textContent = t);
+    const d = new Date(), name = `Scan ${d.toISOString().slice(0, 10)} ${String(d.getHours()).padStart(2, '0')}${String(d.getMinutes()).padStart(2, '0')}.pdf`;
+    busy(false); await openBuffers([{ name, bytes: r.bytes }]); showOcr(r.text, 'Your scan is now a PDF with real text. Edit text, copy it, or open it as a Word doc.');
+  } catch (err) { console.error(err); busy(false); toast("Scan failed (" + (err?.message || err) + ").", 6000); }
+};
+// test hook: ?scan=test/x.jpg runs Scan to PDF on a same-origin image
+{ const q = new URLSearchParams(location.search).get('scan'); if (q && !/^[a-z]+:|^\/\//i.test(q)) setTimeout(async () => { const b = await (await fetch(q)).blob(); const f = new File([b], 'scan.jpg', { type: b.type }); const dt = new DataTransfer(); dt.items.add(f); const inp = $('#scanInput'); inp.files = dt.files; inp.onchange({ target: inp }); }, 1500); }
