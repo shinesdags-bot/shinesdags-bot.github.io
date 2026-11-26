@@ -1,0 +1,1 @@
+Noto Sans, Noto Serif, Lato: SIL Open Font License 1.1 (fonts.google.com). Used as fallback fonts when the PDF's own font can't be reused.

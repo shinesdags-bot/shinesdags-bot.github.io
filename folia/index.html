@@ -47,6 +47,7 @@
 
   <h2>Recent</h2>
   <div id="recent" class="recent"><p class="empty">Files you open show up here, saved on this device.</p></div>
+  <p class="build" id="buildLabel">Folia build</p>
   <input type="file" id="wordInput" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="vh" aria-label="Choose a Word file" />
   <input type="file" id="xlInput" accept=".xlsx,.xlsm,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" class="vh" aria-label="Choose a spreadsheet" />
   <input type="file" id="pptInput" accept=".pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation" class="vh" aria-label="Choose a presentation" />
@@ -96,12 +97,12 @@
 <section id="ptEd" class="screen hidden">
   <header class="ed-top">
     <button class="ib" id="ptCancel" title="Cancel">✕</button>
-    <div class="ed-name">Edit text<small id="ptHint">Tap any text and retype it</small></div>
+    <div class="ed-name">Edit text<small id="ptHint">Tap any outlined line to edit it</small></div>
     <button class="ib" id="ptUndo" title="Undo">↶</button>
-    <button class="ib" id="ptRedo" title="Redo">↷</button>
     <button class="save" id="ptDone">Done</button>
   </header>
   <div id="ptHost" class="pthost"></div>
+  <div class="ilzoom"><button id="ptZout" aria-label="Zoom out">−</button><button id="ptZin" aria-label="Zoom in">+</button></div>
   <div id="rtSheet" class="rtsheet hidden" role="dialog" aria-label="Retype text">
     <div class="rtbox"><div class="rthead"><button id="rtCancel" class="ib">Cancel</button><b>Change text</b><button id="rtApply" class="save">Apply</button></div>
     <textarea id="rtText" rows="4" autocapitalize="off" autocomplete="off" spellcheck="false"></textarea>
@@ -290,6 +291,7 @@
   <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn" id="ocrCopy">Copy text</button><button class="btn" id="ocrWord">Open as Word doc</button><button class="btn save" id="ocrEdit">Edit text in PDF</button></div>
 </div></div>
 <div class="toast hidden" id="toast"></div>
+<button class="updbar hidden" id="updBar">A new version of Folia is ready. Tap to update.</button>
 <div class="busy hidden" id="busy"><div class="spin"></div><span id="busyT">Working…</span></div>
 
 <script src="vendor/pdf-lib.min.js"></script>

@@ -231,3 +231,16 @@ h2{font-size:13px;text-transform:uppercase;letter-spacing:1.2px;color:var(--mute
 .rthead{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .rtbox textarea{width:100%;box-sizing:border-box;font-size:17px;padding:10px;border:1px solid #d6d4cc;border-radius:10px;resize:vertical;min-height:90px}
 .rtbox small{color:#6b6a64}
+.ilhost{overflow:auto;-webkit-overflow-scrolling:touch}
+.ilwrap{display:flex;flex-direction:column;align-items:center;gap:12px;padding:10px 8px 120px;min-width:min-content}
+.ilpage{position:relative;background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.18);flex:none}
+.ilpage canvas{position:absolute;inset:0;width:100%;height:100%}
+.ilov{position:absolute;inset:0}
+.ilb{position:absolute;white-space:pre;color:transparent;outline:1px dashed rgba(26,127,100,.55);outline-offset:0;border-radius:2px;cursor:text;-webkit-user-select:text;user-select:text;padding:0 2px;box-sizing:border-box;-webkit-tap-highlight-color:rgba(26,127,100,.15);caret-color:#1a7f64}
+.ilb.changed{color:var(--fg);background:var(--bg);outline-color:rgba(232,160,48,.8)}
+.ilb.editing{color:var(--fg);background:var(--bg);outline:2px solid #1a7f64;z-index:2;-webkit-user-modify:read-write-plaintext-only}
+.ilzoom{position:fixed;right:14px;bottom:calc(env(safe-area-inset-bottom) + 18px);display:flex;gap:8px;z-index:20}
+.ilzoom button{width:46px;height:46px;border-radius:23px;border:0;background:#123b37;color:#fff;font-size:24px;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.build{text-align:center;color:#8a887f;font-size:12px;margin:18px 0 8px}
+.updbar{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom) + 12px);z-index:80;background:#e8a030;color:#1b1b1b;border:0;border-radius:14px;padding:14px;font-size:15px;font-weight:600;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+.updbar.hidden{display:none}

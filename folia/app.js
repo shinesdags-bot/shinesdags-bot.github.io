@@ -5,6 +5,7 @@ import { Sync } from './sync.js';
 import { initWord, openWord, newWord, wordLibs } from './word.js';
 import { initExcel, openExcel, newExcel, excelLibs } from './excel.js';
 import { initPpt, openPpt, newPpt, pptLibs } from './ppt.js';
+import { BUILD } from './build.js';
 const { PDFDocument, rgb, degrees, StandardFonts } = window.PDFLib;
 
 const $ = s => document.querySelector(s);
@@ -345,19 +346,16 @@ let ptEditor = null, ptMod = null;
 const pristine = () => docs.length === 1 && !pages.some(p => p.objs.length || p.urot || p.doc !== 0) && pages.length === (docs[0].js?.numPages || 0) && pages.every((p, k) => p.idx === k);
 async function openEditText() {
   if (editing) stopEdit(); if (!pages.length) return;
-  busy(true, 'Getting text ready…');
+  busy(true, 'Finding the text…');
   try {
     const bytes = pristine() ? docs[0].bytes.slice() : new Uint8Array(await buildPdf(pages));
-    if (!ptMod) { let err; for (let k = 0; k < 3 && !ptMod; k++) { try { if (k) { toast('Downloading the text editor… (try ' + (k + 1) + ')'); await new Promise(r => setTimeout(r, 1500)); } ptMod = await import('./vendor/pdfedit.min.mjs' + (k ? '?r=' + Date.now() : '')); } catch (e) { err = e; } } if (!ptMod) throw new Error((err && err.message || 'download failed') + ' — check your connection and tap Edit text again'); }
+    if (!ptMod) { let err; for (let k = 0; k < 3 && !ptMod; k++) { try { if (k) await new Promise(r => setTimeout(r, 1500)); ptMod = await import('./inline.js'); } catch (e) { err = e; } } if (!ptMod) throw new Error((err && err.message || 'download failed') + ' — check your connection and tap Edit text again'); }
     $('#editor').classList.add('hidden'); $('#ptEd').classList.remove('hidden');
     const host = $('#ptHost'); host.innerHTML = '';
-    let warned = false;
-    ptEditor = ptMod.createPdfEditor(host, bytes, {
-      workerSrc: new URL('./vendor/pdfedit.worker.min.mjs', location.href).href,
-      onError: m => { toast("This PDF's text can't be edited here: " + m, 5000); closeEditText(false); },
-      onWarning: m => { if (!warned) { warned = true; toast(m, 5000); } },
-    });
-  } catch (e) { console.error(e); toast("Couldn't start text editing (" + (e?.message || e) + "). Use Whiteout + Add text instead.", 6000); $('#ptEd').classList.add('hidden'); $('#editor').classList.remove('hidden'); }
+    ptEditor = await ptMod.openInline({ host, bytes, pdfjsLib, getOcr, status: t => t ? (busy(true, t)) : null });
+    busy(false);
+    if (!ptEditor.count()) toast("I couldn't find any text on these pages.", 4000); else toast('Tap any outlined line to edit it', 2500);
+  } catch (e) { console.error(e); toast("Couldn't start text editing (" + (e?.message || e) + ").", 6000); try { ptEditor?.destroy(); } catch {} ptEditor = null; $('#ptEd').classList.add('hidden'); $('#editor').classList.remove('hidden'); }
   busy(false);
 }
 async function closeEditText(keep) {
@@ -412,8 +410,6 @@ $('#rtApply').onclick = () => { const el = rtEl; $('#rtSheet').classList.add('hi
 }
 $('#ptDone').onclick = () => closeEditText(true);
 $('#ptCancel').onclick = () => closeEditText(false);
-$('#ptUndo').onclick = () => ptEditor?.canUndo() && ptEditor.undo();
-$('#ptRedo').onclick = () => ptEditor?.canRedo() && ptEditor.redo();
 
 // ---------- export ----------
 async function buildPdf(list) {
@@ -481,7 +477,7 @@ const drop = $('#drop');
 document.addEventListener('drop', e => e.dataTransfer?.files?.length && openFiles(e.dataTransfer.files));
 if ('launchQueue' in window) launchQueue.setConsumer(async p => { if (p.files?.length) openFiles(await Promise.all(p.files.map(h => h.getFile()))); });
 window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => {});
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js', { scope: './', updateViaCache: 'none' }).catch(() => {});
 // ---------- account + sync ----------
 let syncState = 'off', syncMsg = '';
 function paintAcct() {
@@ -519,7 +515,7 @@ window.__folia = { get pages() { return pages; }, buildPdf, openBuffers, setTool
 // ?open=test/x.pdf opens a file shipped with Folia (same-origin paths only; used for testing)
 { const o = new URLSearchParams(location.search).get('open'); if (o && /^[\w\-\/]+\.(pdf|docx|xlsx|pptx|csv)$/i.test(o) && !o.startsWith('/') && !o.includes('..')) fetch(o).then(r => r.ok ? r.blob() : Promise.reject()).then(b => openFiles([new File([b], o.split('/').pop(), { type: b.type })])).catch(() => toast("Couldn't open that file.")); }
 // warm the big Edit-text libraries in the background so tapping Edit text never waits on a slow network
-setTimeout(() => { for (const f of ['vendor/pdfedit.min.mjs', 'vendor/pdfedit.worker.min.mjs']) fetch(f).catch(() => {}); }, 4000);
+setTimeout(() => { for (const f of ['inline.js', 'vendor/fontkit.umd.min.js', 'vendor/fonts/Lato-Regular.ttf', 'vendor/fonts/Lato-Bold.ttf', 'vendor/fonts/NotoSans-Regular.ttf', 'vendor/fonts/NotoSans-Bold.ttf']) fetch(f).catch(() => {}); }, 4000);
 
 // ---------- OCR (text recognition) ----------
 let ocrMod = null;
@@ -553,3 +549,17 @@ $('#scanInput').onchange = async e => { const fs = [...e.target.files]; e.target
 };
 // test hook: ?scan=test/x.jpg runs Scan to PDF on a same-origin image
 { const q = new URLSearchParams(location.search).get('scan'); if (q && !/^[a-z]+:|^\/\//i.test(q)) setTimeout(async () => { const b = await (await fetch(q)).blob(); const f = new File([b], 'scan.jpg', { type: b.type }); const dt = new DataTransfer(); dt.items.add(f); const inp = $('#scanInput'); inp.files = dt.files; inp.onchange({ target: inp }); }, 1500); }
+
+// ---------- Edit text controls ----------
+$('#ptUndo').onclick = () => { if (ptEditor && !ptEditor.undo()) toast('Nothing to undo'); };
+$('#ptZin').onclick = () => ptEditor?.zoom(1.4);
+$('#ptZout').onclick = () => ptEditor?.zoom(1 / 1.4);
+
+// ---------- version label + update check ----------
+{ const lab = $('#buildLabel'); const fmt = v => v && v.length >= 12 ? `${v.slice(0, 4)}-${v.slice(4, 6)}-${v.slice(6, 8)} ${v.slice(8, 10)}:${v.slice(10, 12)} UTC` : v;
+  if (lab) lab.textContent = 'Folia build ' + fmt(BUILD);
+  const check = async () => { try { const t = await (await fetch('sw.js?c=' + Date.now(), { cache: 'no-store' })).text(); const m = t.match(/folia-(\d{14})/); if (m && BUILD !== 'dev' && m[1] > BUILD) {
+      const reg = await navigator.serviceWorker?.getRegistration(); await reg?.update();
+      const bar = $('#updBar'); bar.classList.remove('hidden'); bar.onclick = () => location.reload(); } } catch {} };
+  setTimeout(check, 2500); document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && check());
+}
