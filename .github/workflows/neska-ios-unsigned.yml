@@ -1,0 +1,40 @@
+name: Neska iOS unsigned IPA (sideload)
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["native/ios/**", "native/package*.json", "native/capacitor.config.*", ".github/workflows/neska-ios-unsigned.yml"]
+permissions:
+  contents: write
+jobs:
+  ipa:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+      - name: Pick newest stable Xcode
+        run: |
+          X=$(ls -d /Applications/Xcode_*.app | grep -vi -e beta -e rc | sort -V | tail -1)
+          sudo xcode-select -s "$X"; xcodebuild -version
+      - name: Install and sync
+        working-directory: native
+        run: npm ci && npx cap sync ios
+      - name: Build unsigned app
+        working-directory: native/ios/App
+        run: |
+          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' \
+            -derivedDataPath "$RUNNER_TEMP/dd" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            CURRENT_PROJECT_VERSION=${{ github.run_number }} MARKETING_VERSION=1.0 build
+      - name: Package IPA
+        run: |
+          APP=$(find "$RUNNER_TEMP/dd/Build/Products/Release-iphoneos" -maxdepth 1 -name "*.app" | head -1)
+          test -d "$APP" || { echo "no .app"; exit 1; }
+          mkdir -p "$RUNNER_TEMP/pkg/Payload" && cp -R "$APP" "$RUNNER_TEMP/pkg/Payload/"
+          (cd "$RUNNER_TEMP/pkg" && zip -qry "$GITHUB_WORKSPACE/Neska-unsigned.ipa" Payload)
+          ls -l Neska-unsigned.ipa
+      - name: Publish
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: gh release create "ios-unsigned-${{ github.run_number }}" Neska-unsigned.ipa --prerelease --title "Neska iOS build ${{ github.run_number }} (unsigned, sideload)" --notes "Unsigned IPA. Sideload with Sideloadly or AltStore using a free Apple ID; re-sign every 7 days."
