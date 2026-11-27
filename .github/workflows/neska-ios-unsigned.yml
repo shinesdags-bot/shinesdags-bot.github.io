@@ -32,9 +32,20 @@ jobs:
         run: |
           APP=$(find "$RUNNER_TEMP/dd/Build/Products/Release-iphoneos" -maxdepth 1 -name "*.app" | head -1)
           test -d "$APP" || { echo "no .app"; exit 1; }
+          # Embed entitlements (app group) with an ad-hoc signature so SideStore/AltStore can read
+          # and register them when re-signing; they replace the signature with the user's own.
+          EXT="$APP/PlugIns/NowPlayingWidget.appex"
+          test -d "$EXT" || { echo "widget extension missing"; exit 1; }
+          codesign -f -s - --entitlements native/ios/App/NowPlayingWidget/NowPlayingWidget.entitlements "$EXT"
+          for f in "$APP"/Frameworks/*; do [ -e "$f" ] && codesign -f -s - "$f"; done
+          codesign -f -s - --entitlements native/ios/App/App/App.entitlements "$APP"
+          echo "--- app entitlements"; codesign -d --entitlements - "$APP" || true
+          echo "--- widget entitlements"; codesign -d --entitlements - "$EXT" || true
+          echo "--- widget Info.plist"; plutil -p "$EXT/Info.plist"
+          ls -la "$APP/PlugIns"
           mkdir -p "$RUNNER_TEMP/pkg/Payload" && cp -R "$APP" "$RUNNER_TEMP/pkg/Payload/"
           (cd "$RUNNER_TEMP/pkg" && zip -qry "$GITHUB_WORKSPACE/Neska-unsigned.ipa" Payload)
           ls -l Neska-unsigned.ipa
       - name: Publish
         env: { GH_TOKEN: "${{ github.token }}" }
-        run: gh release create "ios-unsigned-${{ github.run_number }}" Neska-unsigned.ipa --prerelease --title "Neska iOS build ${{ github.run_number }} (unsigned, sideload)" --notes "Unsigned IPA. Sideload with Sideloadly or AltStore using a free Apple ID; re-sign every 7 days."
+        run: gh release create "ios-unsigned-${{ github.run_number }}" Neska-unsigned.ipa --prerelease --title "Neska iOS build ${{ github.run_number }} (unsigned, sideload)" --notes "Unsigned IPA (entitlements embedded, ad-hoc). Includes the Now Playing home-screen widget (iOS 17+). Sideload with Sideloadly or AltStore using a free Apple ID; re-sign every 7 days."
