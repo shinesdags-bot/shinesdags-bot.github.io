@@ -1958,6 +1958,159 @@
 })();
     </script>
     <script>
+/* ---------- Native offline copy (inside the Neska app only) ----------
+   Some app WebViews can't run the service worker, so offline the app opens its bundled
+   offline screen instead of this page. Every song saved offline here (IndexedDB) is also
+   copied into the app's own storage (Filesystem, Directory.Data, neska-offline/) with its
+   cover and a manifest.json (title, artist, file, cover), which that screen plays from.
+   Runs on open, when a song is saved or removed, and when the phone comes back online. */
+(function () {
+  "use strict";
+  var C = window.Capacitor;
+  if (!C || !C.isNativePlatform || !C.isNativePlatform()) return;
+  var FS = C.Plugins && C.Plugins.Filesystem;
+  if (!FS || !FS.writeFile || !FS.appendFile || !FS.readFile) return;
+  var DIR = "DATA", ROOT = "neska-offline", MAN = ROOT + "/manifest.json", CHUNK = 786432; // 768 KB per bridge call
+  var man = null, running = false, again = false, timer = 0, tried = {}; // tried: covers fetched this session
+  function noop() {}
+  function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function xf() { try { var v = localStorage.getItem("neska.crossfade"); if (v !== null && /^\d+$/.test(v)) return Math.min(12, +v); } catch (e) {} return 6; }
+  function libRows() { // the library copy the site keeps: id → { title, artist, duration, mime, cover_path }
+    var by = {}, order = {};
+    try { var v = JSON.parse(localStorage.getItem("neska.libcache") || "null"); (v && v.rows || []).forEach(function (r, i) { if (r && r.id) { by[r.id] = r; order[r.id] = i; } }); } catch (e) {}
+    var P = window.NeskaPlayer;
+    try { (P && P.tracks ? P.tracks() : []).forEach(function (t) { if (t && t.cloudId && !by[t.cloudId]) by[t.cloudId] = { id: t.cloudId, title: t.title, artist: t.artist, duration: t.duration, mime: t.mime, cover_path: t.coverPath }; }); } catch (e) {}
+    return { by: by, order: order };
+  }
+  function readMan() {
+    if (man) return Promise.resolve(man);
+    return FS.readFile({ path: MAN, directory: DIR, encoding: "utf8" }).then(function (r) {
+      var v = JSON.parse((r && r.data) || "null"); return v && Array.isArray(v.songs) ? v : null;
+    }, function () { return null; }).then(function (v) { man = v || { version: 1, songs: [] }; return man; });
+  }
+  function writeMan(lib) {
+    man.songs.sort(function (a, b) { var x = lib.order[a.id], y = lib.order[b.id]; return (x == null ? 1e9 : x) - (y == null ? 1e9 : y) || (a.savedAt || 0) - (b.savedAt || 0); });
+    man.version = 1; man.updated = Date.now(); man.crossfade = xf();
+    return FS.writeFile({ path: MAN, directory: DIR, encoding: "utf8", data: JSON.stringify(man), recursive: true });
+  }
+  function b64(blob) {
+    return new Promise(function (res, rej) {
+      var r = new FileReader();
+      r.onload = function () { var s = String(r.result); res(s.slice(s.indexOf(",") + 1)); };
+      r.onerror = function () { rej(r.error || new Error("read failed")); };
+      r.readAsDataURL(blob);
+    });
+  }
+  function writeBlob(path, blob) { // in slices, so a long song never crosses the bridge in one piece
+    var off = 0;
+    function step(first) {
+      return b64(blob.slice(off, off + CHUNK)).then(function (d) {
+        var o = { path: path, directory: DIR, data: d };
+        if (first) { o.recursive = true; return FS.writeFile(o); }
+        return FS.appendFile(o);
+      }).then(function () { off += CHUNK; if (off < blob.size) return wait(10).then(function () { return step(false); }); });
+    }
+    return step(true);
+  }
+  function ext(mime) {
+    mime = String(mime || "").toLowerCase();
+    if (/flac/.test(mime)) return "flac";
+    if (/wav/.test(mime)) return "wav";
+    if (/ogg|opus/.test(mime)) return "ogg";
+    if (/aiff/.test(mime)) return "aif";
+    if (/x-caf/.test(mime)) return "caf";
+    if (/aac/.test(mime) && !/mp4/.test(mime)) return "aac";
+    if (/mp4|m4a/.test(mime)) return "m4a";
+    return "mp3";
+  }
+  function coverBlob(row) {
+    var c = window.NeskaCloud;
+    if (!row || !row.cover_path || !c || !c.signPath || navigator.onLine === false) return Promise.resolve(null);
+    return c.signPath(row.cover_path).then(function (u) { return fetch(u); })
+      .then(function (r) { return r.ok ? r.blob() : null; }).then(function (b) { return b && b.size ? b : null; }, function () { return null; });
+  }
+  function del(s) {
+    return Promise.all([s.file, s.cover].filter(Boolean).map(function (f) { return FS.deleteFile({ path: ROOT + "/" + f, directory: DIR }).catch(noop); }));
+  }
+  function meta(s, row) {
+    if (!row) return false;
+    var t = row.title || "Untitled", a = row.artist || "", d = row.duration ? +row.duration : null, ch = false;
+    if (s.title !== t) { s.title = t; ch = true; }
+    if (s.artist !== a) { s.artist = a; ch = true; }
+    if (d && s.duration !== d) { s.duration = d; ch = true; }
+    if ((row.cover_path || null) !== (s.coverPath || null)) { s.coverPath = row.cover_path || null; ch = true; }
+    return ch;
+  }
+  function addCover(s, row) {
+    return coverBlob(row).then(function (b) {
+      if (row) tried[s.id + "|" + row.cover_path] = true;
+      if (!b) return false;
+      var f = s.id + ".jpg";
+      return writeBlob(ROOT + "/" + f, b).then(function () { s.cover = f; s.coverFor = row.cover_path; return true; }, function () { return false; });
+    });
+  }
+  function copy(id, lib) {
+    var off = window.NeskaOffline, row = lib.by[id];
+    return off.get(id).then(function (blob) {
+      if (!blob || !blob.size) return null;
+      var mime = blob.type || (row && row.mime) || "audio/mpeg", f = id + "." + ext(mime);
+      return writeBlob(ROOT + "/" + f, blob).then(function () {
+        var s = { id: id, title: "Untitled", artist: "", file: f, mime: mime, size: blob.size, savedAt: Date.now() };
+        meta(s, row);
+        return addCover(s, row).then(function () { return s; });
+      });
+    });
+  }
+  function sync() {
+    var off = window.NeskaOffline;
+    if (!off || !off.list) return;
+    if (running) { again = true; return; }
+    running = true; again = false;
+    var lib = libRows(), dirty = false;
+    Promise.all([readMan(), off.list()]).then(function (r) {
+      var m = r[0], want = {}, have = {};
+      r[1].forEach(function (x) { want[x.id] = true; });
+      m.songs.forEach(function (s) { have[s.id] = s; });
+      var chain = Promise.resolve();
+      // gone from the site's offline songs: gone here too
+      m.songs.filter(function (s) { return !want[s.id]; }).forEach(function (s) {
+        chain = chain.then(function () { return del(s); }).then(function () { m.songs = m.songs.filter(function (x) { return x !== s; }); dirty = true; });
+      });
+      // titles, artists and covers kept up to date
+      m.songs.forEach(function (s) {
+        if (!want[s.id]) return;
+        var row = lib.by[s.id];
+        if (meta(s, row)) dirty = true;
+        if (row && row.cover_path && (!s.cover || s.coverFor !== row.cover_path) && !tried[s.id + "|" + row.cover_path] && navigator.onLine !== false) {
+          chain = chain.then(function () { return addCover(s, row); }).then(function (ok) { if (ok) dirty = true; });
+        }
+      });
+      chain = chain.then(function () { if (dirty) { dirty = false; return writeMan(lib); } });
+      // new ones, one at a time; the manifest is saved after each so a cut-off run keeps its progress
+      r[1].map(function (x) { return x.id; }).filter(function (id) { return !have[id]; }).forEach(function (id) {
+        chain = chain.then(function () {
+          if (!off.has(id)) return;
+          return copy(id, lib).then(function (s) {
+            if (!s) return;
+            m.songs = m.songs.filter(function (x) { return x.id !== id; }); m.songs.push(s);
+            return writeMan(lib);
+          }, function () {}).then(function () { return wait(250); });
+        });
+      });
+      return chain.then(function () { if (m.crossfade !== xf()) return writeMan(lib); });
+    }).catch(noop).then(function () {
+      running = false;
+      if (again) soon(1500);
+    });
+  }
+  function soon(ms) { clearTimeout(timer); timer = setTimeout(sync, ms); }
+  window.addEventListener("neska-offline-change", function () { soon(1500); });
+  window.addEventListener("online", function () { soon(4000); });
+  if (document.readyState === "complete") soon(5000); else window.addEventListener("load", function () { soon(5000); });
+  window.NeskaNativeOffline = { sync: sync, manifest: function () { return readMan().then(function (m) { return JSON.parse(JSON.stringify(m)); }); } };
+})();
+    </script>
+    <script>
 (function () {
   "use strict";
   var $ = function (id) { return document.getElementById(id); };
@@ -5652,7 +5805,7 @@
     return api("/rest/v1/tracks?id=eq." + encodeURIComponent(t.cloudId), { method: "PATCH", headers: { Prefer: "return=minimal" }, body: { lyrics: text } });
   }
 
-  window.NeskaCloud = { needsSrc: needsSrc, resolve: resolve, save: save, saveCover: saveCover, trackPlayed: trackPlayed, saveLyrics: saveLyrics };
+  window.NeskaCloud = { needsSrc: needsSrc, resolve: resolve, save: save, saveCover: saveCover, trackPlayed: trackPlayed, saveLyrics: saveLyrics, signPath: sign };
 
   /* YouTube list: one JSON file, songs/<user_id>/youtube.json, used by the YouTube script */
   function ytPath() { return S && S.access && S.user && S.user.id ? S.user.id + "/youtube.json" : null; }
