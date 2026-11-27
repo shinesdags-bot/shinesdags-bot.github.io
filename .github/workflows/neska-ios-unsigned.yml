@@ -1,9 +1,14 @@
 name: Neska iOS unsigned IPA (sideload)
 on:
   workflow_dispatch:
+    inputs:
+      widget:
+        description: "Include the Now Playing home-screen widget (adds a 2nd app ID; a free Apple ID allows only 3 active apps)"
+        type: boolean
+        default: false
   push:
     branches: [main]
-    paths: ["native/ios/**", "native/package*.json", "native/capacitor.config.*", ".github/workflows/neska-ios-unsigned.yml"]
+    paths: ["native/ios/**", "native/www/**", "native/package*.json", "native/capacitor.config.*", ".github/workflows/neska-ios-unsigned.yml"]
 permissions:
   contents: write
 jobs:
@@ -29,23 +34,45 @@ jobs:
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
             CURRENT_PROJECT_VERSION=${{ github.run_number }} MARKETING_VERSION=1.0 build
       - name: Package IPA
+        env:
+          WITH_WIDGET: ${{ github.event_name == 'workflow_dispatch' && inputs.widget == true && '1' || '0' }}
         run: |
           APP=$(find "$RUNNER_TEMP/dd/Build/Products/Release-iphoneos" -maxdepth 1 -name "*.app" | head -1)
           test -d "$APP" || { echo "no .app"; exit 1; }
-          # Embed entitlements (app group) with an ad-hoc signature so SideStore/AltStore can read
-          # and register them when re-signing; they replace the signature with the user's own.
           EXT="$APP/PlugIns/NowPlayingWidget.appex"
-          test -d "$EXT" || { echo "widget extension missing"; exit 1; }
-          codesign -f -s - --entitlements native/ios/App/NowPlayingWidget/NowPlayingWidget.entitlements "$EXT"
-          for f in "$APP"/Frameworks/*; do [ -e "$f" ] && codesign -f -s - "$f"; done
-          codesign -f -s - --entitlements native/ios/App/App/App.entitlements "$APP"
-          echo "--- app entitlements"; codesign -d --entitlements - "$APP" || true
-          echo "--- widget entitlements"; codesign -d --entitlements - "$EXT" || true
-          echo "--- widget Info.plist"; plutil -p "$EXT/Info.plist"
-          ls -la "$APP/PlugIns"
+          if [ "$WITH_WIDGET" = "1" ]; then
+            # Embed entitlements (app group) with an ad-hoc signature so SideStore/AltStore can read
+            # and register them when re-signing; they replace the signature with the user's own.
+            test -d "$EXT" || { echo "widget extension missing"; exit 1; }
+            codesign -f -s - --entitlements native/ios/App/NowPlayingWidget/NowPlayingWidget.entitlements "$EXT"
+            for f in "$APP"/Frameworks/*; do [ -e "$f" ] && codesign -f -s - "$f"; done
+            codesign -f -s - --entitlements native/ios/App/App/App.entitlements "$APP"
+            echo "--- app entitlements"; codesign -d --entitlements - "$APP" || true
+            echo "--- widget Info.plist"; plutil -p "$EXT/Info.plist"
+          else
+            # Default: no widget. The extension is a second app ID, over the free Apple ID's 3-app limit.
+            rm -rf "$APP/PlugIns"
+            echo "widget left out"
+          fi
           mkdir -p "$RUNNER_TEMP/pkg/Payload" && cp -R "$APP" "$RUNNER_TEMP/pkg/Payload/"
           (cd "$RUNNER_TEMP/pkg" && zip -qry "$GITHUB_WORKSPACE/Neska-unsigned.ipa" Payload)
           ls -l Neska-unsigned.ipa
+      - name: Verify IPA contents
+        env:
+          WITH_WIDGET: ${{ github.event_name == 'workflow_dispatch' && inputs.widget == true && '1' || '0' }}
+        run: |
+          rm -rf "$RUNNER_TEMP/chk" && mkdir -p "$RUNNER_TEMP/chk" && unzip -q Neska-unsigned.ipa -d "$RUNNER_TEMP/chk"
+          A=$(ls -d "$RUNNER_TEMP/chk/Payload/"*.app | head -1)
+          test -f "$A/public/offline.html" || { echo "offline.html missing"; exit 1; }
+          grep -q "neska-offline/manifest.json" "$A/public/offline.html" || { echo "old offline.html"; exit 1; }
+          ls -d "$A"/Frameworks/CapacitorFilesystem.framework || { echo "Filesystem plugin missing"; ls "$A/Frameworks"; exit 1; }
+          plutil -extract WKAppBoundDomains json -o - "$A/Info.plist"
+          plutil -extract UIBackgroundModes json -o - "$A/Info.plist"
+          python3 -c "import json,sys;c=json.load(open(sys.argv[1]));assert c['ios']['limitsNavigationsToAppBoundDomains'] is True;print('capacitor.config ok',c['server']['url'])" "$A/capacitor.config.json"
+          if [ "$WITH_WIDGET" != "1" ] && [ -d "$A/PlugIns" ]; then echo "widget should be absent"; exit 1; fi
+          ls "$A/Frameworks"; ls "$A/public"
       - name: Publish
         env: { GH_TOKEN: "${{ github.token }}" }
-        run: gh release create "ios-unsigned-${{ github.run_number }}" Neska-unsigned.ipa --prerelease --title "Neska iOS build ${{ github.run_number }} (unsigned, sideload)" --notes "Unsigned IPA (entitlements embedded, ad-hoc). Includes the Now Playing home-screen widget (iOS 17+). Sideload with Sideloadly or AltStore using a free Apple ID; re-sign every 7 days."
+        run: |
+          if [ "${{ github.event_name == 'workflow_dispatch' && inputs.widget == true && '1' || '0' }}" = "1" ]; then W="Includes the Now Playing home-screen widget (iOS 17+, needs a free app slot)."; else W="No home-screen widget (fits the free Apple ID 3-app limit)."; fi
+          gh release create "ios-unsigned-${{ github.run_number }}" Neska-unsigned.ipa --prerelease --title "Neska iOS build ${{ github.run_number }} (unsigned, sideload)" --notes "Unsigned IPA. $W Offline songs play inside the app (service worker via app-bound domains, plus a bundled offline player). Sideload with SideStore, AltStore or Sideloadly using a free Apple ID; re-sign every 7 days."
