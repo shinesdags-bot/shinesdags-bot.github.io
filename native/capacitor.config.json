@@ -4,8 +4,25 @@
   "webDir": "www",
   "server": {
     "url": "https://shinesdags-bot.github.io/",
-    "allowNavigation": ["shinesdags-bot.github.io", "*.supabase.co", "*.youtube.com", "*.youtube-nocookie.com", "*.googlevideo.com", "*.ytimg.com", "lrclib.net", "itunes.apple.com", "*.mzstatic.com"]
+    "allowNavigation": [
+      "shinesdags-bot.github.io",
+      "*.supabase.co",
+      "*.youtube.com",
+      "*.youtube-nocookie.com",
+      "*.googlevideo.com",
+      "*.ytimg.com",
+      "lrclib.net",
+      "itunes.apple.com",
+      "*.mzstatic.com"
+    ],
+    "errorPath": "offline.html"
   },
-  "android": { "backgroundColor": "#1a0f1f" },
-  "ios": { "backgroundColor": "#1a0f1f", "contentInset": "never", "limitsNavigationsToAppBoundDomains": false }
+  "android": {
+    "backgroundColor": "#1a0f1f"
+  },
+  "ios": {
+    "backgroundColor": "#1a0f1f",
+    "contentInset": "never",
+    "limitsNavigationsToAppBoundDomains": false
+  }
 }
